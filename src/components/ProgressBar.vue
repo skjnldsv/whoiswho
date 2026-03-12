@@ -91,7 +91,7 @@ defineProps<{
 }
 
 .xp-bar {
-	height: 8px;
+	height: 16px;
 	background: var(--color-background-dark);
 	border-radius: var(--border-radius-pill);
 	overflow: hidden;
@@ -109,7 +109,7 @@ defineProps<{
 }
 
 .xp-text {
-	font-size: 0.6rem;
+	font-size: 0.75rem;
 	font-weight: 700;
 	color: var(--color-primary-element-text);
 	padding-inline-end: 6px;
