@@ -143,22 +143,25 @@ const emitted = ref(false)
 const recallInput = useTemplateRef<HTMLInputElement>('recallInput')
 const typeInput = useTemplateRef<HTMLInputElement>('typeInput')
 
+/**
+ * Focus whichever text input is currently rendered (recall or type challenge)
+ */
+async function focusInput() {
+	await nextTick()
+	recallInput.value?.focus()
+	typeInput.value?.focus()
+}
+
 // Reset internal state and focus the text input on each new challenge
-watch(() => props.challenge, async () => {
+watch(() => props.challenge, () => {
 	typedAnswer.value = ''
 	chosenAnswer.value = ''
 	emitted.value = false
-	await nextTick()
-	recallInput.value?.focus()
-	typeInput.value?.focus()
+	focusInput()
 })
 
 // Auto-focus the text input on initial mount
-onMounted(async () => {
-	await nextTick()
-	recallInput.value?.focus()
-	typeInput.value?.focus()
-})
+onMounted(focusInput)
 
 /**
  *

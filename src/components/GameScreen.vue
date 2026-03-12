@@ -18,20 +18,24 @@
 		</div>
 
 		<!-- ── Two-column body ── -->
-		<div v-if="currentChallenge"
+		<div
+			v-if="currentChallenge"
 			class="game-body"
 			:class="{ 'game-body--meet-pending': currentChallenge.type === 'meet' && !showingResult }">
 			<!-- LEFT: photo card (animates per challenge) -->
 			<div class="card-column">
 				<Transition name="card-fade" mode="out-in">
 					<div :key="currentChallenge.seq" class="card-wrapper">
-						<span class="stage-tag" :class="currentChallenge.type.replace('-', '_')">
-							{{ stageLabels[currentChallenge.type] }}
-						</span>
 						<!-- pick-face: show name as the clue, not a photo -->
 						<div v-if="currentChallenge.type === 'pick-face'" class="name-badge">
 							<div class="name-badge-avatar">
-								{{ currentChallenge.person.name.charAt(0) }}
+								<img
+									v-if="showingResult && !pickFacePhotoFailed"
+									:src="currentChallenge.person.photo"
+									:alt="currentChallenge.person.name"
+									class="name-badge-photo"
+									@error="onPickFacePhotoError">
+								<span v-else>{{ currentChallenge.person.name.charAt(0) }}</span>
 							</div>
 							<h2 class="name-badge-name">
 								{{ currentChallenge.person.name }}
@@ -47,7 +51,6 @@
 							v-else
 							:person="currentChallenge.person"
 							:showName="currentChallenge.type === 'meet'"
-							:flipped="showingResult && lastAnswerCorrect && currentChallenge.type !== 'meet'"
 							:correct="showingResult && lastAnswerCorrect"
 							:wrong="showingResult && !lastAnswerCorrect" />
 						<!-- "Got it" button lives below the card for meet challenges -->
@@ -56,7 +59,7 @@
 							class="btn-action btn-action--meet"
 							:disabled="answered"
 							@click="handleMeet">
-							Got it <kbd>↵</kbd>
+							Got it <kbd class="kbd-gap">↵</kbd>
 						</button>
 					</div>
 				</Transition>
@@ -197,14 +200,6 @@ const emit = defineEmits<{
 	end: []
 }>()
 
-const stageLabels: Record<string, string> = {
-	meet: '👋 Meet',
-	recognize: '🎯 Recognize',
-	'pick-face': '🖼️ Pick the Face',
-	recall: '🧩 Recall',
-	type: '✍️ Master',
-}
-
 const xpEarned = ref(0)
 const xpPopup = ref(0)
 const xpPopupKey = ref(0)
@@ -216,6 +211,8 @@ const answered = ref(false)
 const advancing = ref(false)
 // Whether auto-advancing is in progress (drives CSS gradient fill on Next button)
 const autoAdvancing = ref(false)
+// Whether the pick-face reveal photo failed to load
+const pickFacePhotoFailed = ref(false)
 let autoSkipTimeoutId: ReturnType<typeof setTimeout> | null = null
 const AUTO_SKIP_DELAY_MS = 3000 // ms before auto-advancing to next challenge
 
@@ -235,6 +232,7 @@ watch(() => props.currentChallenge, () => {
 	answered.value = false
 	advancing.value = false
 	xpEarned.value = 0
+	pickFacePhotoFailed.value = false
 	clearAutoSkipTimers()
 })
 
@@ -376,6 +374,13 @@ function confettiStyle(i: number) {
 	}
 }
 
+/**
+ * Mark pick-face reveal photo as failed so we fall back to the initial
+ */
+function onPickFacePhotoError() {
+	pickFacePhotoFailed.value = true
+}
+
 // ── Keyboard shortcuts ────────────────────────────────────────────────
 
 // Enter → Got it (meet) or advance when showing result
@@ -497,28 +502,6 @@ useHotKey('h', () => {
 .flex-spacer {
 	flex: 1;
 }
-
-/* ── Stage badge ──────────────────────────────────────────────────*/
-.stage-tag {
-	display: inline-flex;
-	align-items: center;
-	padding: 4px 14px;
-	border-radius: var(--border-radius-pill);
-	font-size: 0.78rem;
-	font-weight: 700;
-	letter-spacing: 0.05em;
-	text-transform: uppercase;
-}
-
-.stage-tag.meet        { background: var(--color-primary-element); color: var(--color-primary-element-text); }
-
-.stage-tag.recognize   { background: #9b59b6; color: #fff; }
-
-.stage-tag.pick_face   { background: #16a085; color: #fff; }
-
-.stage-tag.recall      { background: #e67e22; color: #fff; }
-
-.stage-tag.type        { background: #e74c3c; color: #fff; }
 
 /* ── Hint ──────────────────────────────────────────────────────*/
 .hint-bubble {
@@ -770,6 +753,14 @@ kbd {
 	font-size: 1.6rem;
 	font-weight: 700;
 	flex-shrink: 0;
+	overflow: hidden;
+}
+
+.name-badge-photo {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
 }
 
 .name-badge-name {
