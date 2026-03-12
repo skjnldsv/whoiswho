@@ -344,6 +344,7 @@ useHotKey(['1', '2', '3', '4'], (e) => {
 	flex: 1;
 	min-height: 0;
 	overflow: hidden;
+	padding: 4px;
 }
 
 .face-grid {

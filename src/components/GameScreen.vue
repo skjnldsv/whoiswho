@@ -19,7 +19,6 @@
 
 		<!-- ── Two-column body ── -->
 		<div v-if="currentChallenge" class="game-body">
-
 			<!-- LEFT: photo card (animates per challenge) -->
 			<div class="card-column">
 				<Transition name="card-fade" mode="out-in">
@@ -29,12 +28,21 @@
 						</span>
 						<!-- pick-face: show name as the clue, not a photo -->
 						<div v-if="currentChallenge.type === 'pick-face'" class="name-badge">
-							<div class="name-badge-avatar">{{ currentChallenge.person.name.charAt(0) }}</div>
-							<h2 class="name-badge-name">{{ currentChallenge.person.name }}</h2>
-							<p class="name-badge-title">{{ currentChallenge.person.title }}</p>
-							<p class="name-badge-dept">{{ currentChallenge.person.department }}</p>
+							<div class="name-badge-avatar">
+								{{ currentChallenge.person.name.charAt(0) }}
+							</div>
+							<h2 class="name-badge-name">
+								{{ currentChallenge.person.name }}
+							</h2>
+							<p class="name-badge-title">
+								{{ currentChallenge.person.title }}
+							</p>
+							<p class="name-badge-dept">
+								{{ currentChallenge.person.department }}
+							</p>
 						</div>
-						<PersonCard v-else
+						<PersonCard
+							v-else
 							:person="currentChallenge.person"
 							:showName="currentChallenge.type === 'meet'"
 							:flipped="showingResult && currentChallenge.type !== 'meet'"
