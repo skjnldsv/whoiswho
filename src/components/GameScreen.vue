@@ -445,6 +445,7 @@ useHotKey('h', () => {
 }
 
 .game-body--meet-pending .card-column {
+	/* Wide enough to comfortably display the business card + "Got it" button */
 	flex: 0 0 min(360px, 90%);
 	border-inline-end: none;
 }

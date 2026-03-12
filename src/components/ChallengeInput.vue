@@ -28,6 +28,7 @@
 					wrong: showingResult && chosenAnswer === option && option !== challenge.correctAnswer,
 					disabled: showingResult,
 					eliminated: !showingResult && eliminatedOptions.includes(option),
+					'choice-focused': !showingResult && !eliminatedOptions.includes(option) && focusedKey === option,
 				}"
 				:disabled="showingResult || eliminatedOptions.includes(option)"
 				@click="handleChoiceClick(option)">
@@ -51,6 +52,7 @@
 					wrong: showingResult && chosenAnswer === member.name && member.name !== challenge.correctAnswer,
 					disabled: showingResult,
 					eliminated: !showingResult && eliminatedOptions.includes(member.name),
+					'choice-focused': !showingResult && !eliminatedOptions.includes(member.name) && focusedKey === member.name,
 				}"
 				:disabled="showingResult || eliminatedOptions.includes(member.name)"
 				@click="handleChoiceClick(member.name)">
@@ -139,9 +141,34 @@ const typedAnswer = ref('')
 const chosenAnswer = ref('')
 // Prevent double-emission before showingResult prop updates
 const emitted = ref(false)
+// Currently keyboard-focused option key for recognize/pick-face navigation
+const focusedKey = ref<string | null>(null)
 
 const recallInput = useTemplateRef<HTMLInputElement>('recallInput')
 const typeInput = useTemplateRef<HTMLInputElement>('typeInput')
+
+/**
+ * Returns the visible (non-eliminated) option keys for the current challenge.
+ */
+function getVisibleKeys(): string[] {
+	if (props.challenge.type === 'recognize' && props.challenge.options) {
+		return props.challenge.options.filter((o) => !props.eliminatedOptions.includes(o))
+	}
+	if (props.challenge.type === 'pick-face' && props.challenge.photoOptions) {
+		return props.challenge.photoOptions
+			.filter((m) => !props.eliminatedOptions.includes(m.name))
+			.map((m) => m.name)
+	}
+	return []
+}
+
+/**
+ * Initialize keyboard focus to the first visible option for choice challenges.
+ */
+function initChoiceFocus() {
+	const keys = getVisibleKeys()
+	focusedKey.value = keys.length > 0 ? keys[0] : null
+}
 
 /**
  * Focus whichever text input is currently rendered (recall or type challenge)
@@ -157,11 +184,15 @@ watch(() => props.challenge, () => {
 	typedAnswer.value = ''
 	chosenAnswer.value = ''
 	emitted.value = false
+	initChoiceFocus()
 	focusInput()
 })
 
 // Auto-focus the text input on initial mount
-onMounted(focusInput)
+onMounted(() => {
+	initChoiceFocus()
+	focusInput()
+})
 
 /**
  *
@@ -204,6 +235,68 @@ useHotKey(['1', '2', '3', '4'], (e) => {
 			handleChoiceClick(visible[idx].name)
 		}
 	}
+})
+
+/**
+ * Move keyboard focus by `direction` steps through visible options, wrapping around.
+ * If the current focusedKey is no longer visible (e.g. was eliminated), indexOf
+ * returns -1, which causes navigation to start cleanly from either end.
+ *
+ * @param direction +1 for next, -1 for previous
+ */
+function navigateOptions(direction: 1 | -1) {
+	const keys = getVisibleKeys()
+	if (keys.length === 0) {
+		return
+	}
+	// indexOf returns -1 when focusedKey is missing/eliminated; navigation still
+	// wraps correctly because -1 + 1 = 0 (first) and -1 - 1 = -2 < 0 → last.
+	const currentIdx = focusedKey.value !== null ? keys.indexOf(focusedKey.value) : -1
+	let nextIdx = currentIdx + direction
+	if (nextIdx < 0) {
+		nextIdx = keys.length - 1
+	} else if (nextIdx >= keys.length) {
+		nextIdx = 0
+	}
+	focusedKey.value = keys[nextIdx]
+}
+
+// Arrow keys → navigate between options (recognize / pick-face only)
+useHotKey(['ArrowLeft', 'ArrowUp'], (e) => {
+	if (props.showingResult || emitted.value) {
+		return
+	}
+	if (props.challenge.type !== 'recognize' && props.challenge.type !== 'pick-face') {
+		return
+	}
+	e.preventDefault()
+	navigateOptions(-1)
+})
+
+useHotKey(['ArrowRight', 'ArrowDown'], (e) => {
+	if (props.showingResult || emitted.value) {
+		return
+	}
+	if (props.challenge.type !== 'recognize' && props.challenge.type !== 'pick-face') {
+		return
+	}
+	e.preventDefault()
+	navigateOptions(1)
+})
+
+// Enter → confirm the keyboard-focused option (recognize / pick-face only)
+useHotKey((e) => e.key === 'Enter', (e) => {
+	if (props.showingResult || emitted.value) {
+		return
+	}
+	if (props.challenge.type !== 'recognize' && props.challenge.type !== 'pick-face') {
+		return
+	}
+	if (focusedKey.value === null) {
+		return
+	}
+	e.preventDefault()
+	handleChoiceClick(focusedKey.value)
 })
 </script>
 
@@ -258,6 +351,13 @@ useHotKey(['1', '2', '3', '4'], (e) => {
 	background: var(--color-error);
 	border-color: var(--color-element-error);
 	color: var(--color-text-error);
+}
+
+.choice-btn.choice-focused:not(.disabled):not(.eliminated) {
+	border-color: var(--color-primary-element);
+	background: var(--color-background-hover);
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 1px;
 }
 
 .choice-btn.disabled { cursor: default; }
@@ -392,6 +492,12 @@ useHotKey(['1', '2', '3', '4'], (e) => {
 .face-option.wrong {
 	border-color: var(--color-element-error);
 	box-shadow: 0 0 0 3px var(--color-error);
+}
+
+.face-option.choice-focused:not(.disabled):not(.eliminated) {
+	border-color: var(--color-primary-element);
+	box-shadow: 0 0 0 3px var(--color-primary-element);
+	transform: scale(1.03);
 }
 
 .face-option.disabled { cursor: default; }
