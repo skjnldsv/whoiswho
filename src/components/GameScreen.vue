@@ -47,7 +47,7 @@
 			<div class="challenge-column">
 				<!-- Challenge input (animates per challenge) -->
 				<Transition name="fade" mode="out-in">
-					<div :key="currentChallenge.seq" class="input-area">
+					<div :key="currentChallenge.seq" class="input-area" :class="{ 'pick-face': currentChallenge.type === 'pick-face' }">
 						<!-- Meet: see and remember -->
 						<div v-if="currentChallenge.type === 'meet'" class="meet-area">
 							<p class="prompt">Remember this person!</p>
@@ -438,6 +438,14 @@ function confettiStyle(i: number) {
 	flex-shrink: 0;
 }
 
+/* When showing the face-pick grid, let the input-area fill the column
+   so the face images are constrained to the viewport instead of overflowing */
+.input-area.pick-face {
+	flex: 1000 1 0%;
+	min-height: 0;
+	overflow: hidden;
+}
+
 .flex-spacer {
 	flex: 1;
 }
@@ -771,12 +779,18 @@ function confettiStyle(i: number) {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
 }
 
 .face-grid {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
+	grid-template-rows: 1fr 1fr;
 	gap: 10px;
+	flex: 1;
+	min-height: 0;
 }
 
 .face-option {
@@ -787,7 +801,7 @@ function confettiStyle(i: number) {
 	background: var(--color-background-dark);
 	cursor: pointer;
 	padding: 0;
-	aspect-ratio: 1;
+	min-height: 0;
 	transition: border-color 0.15s ease, transform 0.12s ease;
 	margin: 0;
 }
