@@ -7,9 +7,9 @@
 		<!-- Header -->
 		<div class="lb-header">
 			<h2 class="lb-title">🏆 Leaderboard</h2>
-			<NcButton type="tertiary" @click="emit('close')">
+			<button class="btn-back" @click="emit('close')">
 				← Back
-			</NcButton>
+			</button>
 		</div>
 
 		<!-- Tabs -->
@@ -66,7 +66,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import NcButton from '@nextcloud/vue/components/NcButton'
 import { useLeaderboard } from '../composables/useLeaderboard'
 import type { LeaderboardEntry } from '../composables/useLeaderboard'
 
@@ -125,6 +124,22 @@ onMounted(fetchScores)
 	margin: 0;
 	font-size: 1.4rem;
 	font-weight: 700;
+}
+
+.btn-back {
+	padding: 8px 18px;
+	border-radius: 50px;
+	border: 1px solid var(--color-border);
+	background: transparent;
+	color: var(--color-main-text);
+	font-size: 0.88rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.btn-back:hover {
+	background: var(--color-background-hover);
 }
 
 /* ── Tabs ── */

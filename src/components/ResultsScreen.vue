@@ -52,15 +52,15 @@
 			</div>
 
 			<div class="result-actions">
-				<NcButton class="btn-play-again" type="primary" @click="$emit('playAgain')">
+				<button class="btn-primary btn-play-again" @click="$emit('playAgain')">
 					🎮 Play Again
-				</NcButton>
-				<NcButton type="secondary" @click="$emit('leaderboard')">
+				</button>
+				<button class="btn-secondary" @click="$emit('leaderboard')">
 					🏆 Leaderboard
-				</NcButton>
-				<NcButton type="tertiary" @click="$emit('goHome')">
+				</button>
+				<button class="btn-tertiary" @click="$emit('goHome')">
 					← Back to Menu
-				</NcButton>
+				</button>
 			</div>
 		</div>
 	</div>
@@ -68,7 +68,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import NcButton from '@nextcloud/vue/components/NcButton'
 import type { SessionStats } from '../composables/useGameEngine'
 
 const props = defineProps<{
@@ -201,9 +200,58 @@ const accuracy = computed(() => {
 	align-items: center;
 }
 
+.btn-primary {
+	padding: 12px 32px;
+	border-radius: 50px;
+	border: none;
+	background: linear-gradient(135deg, var(--color-primary-element, #0082c9), color-mix(in srgb, var(--color-primary-element, #0082c9) 70%, #000));
+	color: var(--color-primary-element-text, #fff);
+	font-size: 1rem;
+	font-weight: 700;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	box-shadow: 0 4px 14px rgba(0, 130, 201, 0.35);
+}
+
+.btn-primary:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 6px 20px rgba(0, 130, 201, 0.45);
+}
+
+.btn-secondary {
+	padding: 10px 24px;
+	border-radius: 50px;
+	border: 2px solid var(--color-primary-element, #0082c9);
+	background: transparent;
+	color: var(--color-primary-element, #0082c9);
+	font-size: 0.92rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+	background: rgba(0, 130, 201, 0.08);
+}
+
+.btn-tertiary {
+	padding: 8px 16px;
+	border-radius: 50px;
+	border: 1px solid var(--color-border);
+	background: transparent;
+	color: var(--color-text-lighter, #888);
+	font-size: 0.88rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.btn-tertiary:hover {
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+}
+
 .btn-play-again {
-	font-size: 1rem !important;
-	font-weight: 700 !important;
-	min-height: 44px !important;
+	min-width: 180px;
 }
 </style>

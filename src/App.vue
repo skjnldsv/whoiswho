@@ -8,11 +8,9 @@
 			v-if="screen === 'start'"
 			:all-members="allMembers"
 			:progress="progress"
-			:selected-depts="selectedDepts"
 			@start="startGame"
 			@reset="handleReset"
 			@leaderboard="screen = 'leaderboard'"
-			@update:selectedDepts="selectedDepts = $event"
 		/>
 		<GameScreen
 			v-else-if="screen === 'game'"
@@ -61,7 +59,6 @@ import ResultsScreen from './components/ResultsScreen.vue'
 import LeaderboardScreen from './components/LeaderboardScreen.vue'
 
 const screen = ref<'start' | 'game' | 'results' | 'leaderboard'>('start')
-const selectedDepts = ref<string[]>([])
 const hintText = ref<string | null>(null)
 
 const { submitScore } = useLeaderboard()
@@ -83,7 +80,7 @@ const {
 	nextChallenge,
 	submitAnswer,
 	useHint,
-} = useGameEngine(selectedDepts)
+} = useGameEngine()
 
 function startGame() {
 	hintText.value = null
@@ -130,7 +127,6 @@ function handleReset() {
 		sessionsPlayed: 0,
 		lastPlayed: 0,
 	}
-	selectedDepts.value = []
 }
 
 // End game when lives run out

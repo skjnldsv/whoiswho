@@ -4,7 +4,6 @@
  */
 
 import { ref, computed } from 'vue'
-import type { Ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import {
@@ -73,7 +72,7 @@ const ACTIVE_POOL_SIZE = 6
 // Monotonic counter — ensures Vue's Transition always sees a new key even when person+type stays the same
 let challengeSeq = 0
 
-export function useGameEngine(departmentFilter: Ref<string[]>) {
+export function useGameEngine() {
 	const progress = ref<GameProgress>(loadProgress())
 	const currentChallenge = ref<Challenge | null>(null)
 	const sessionStats = ref<SessionStats>({
@@ -107,24 +106,14 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 		allMembersRaw.value.filter(m => m.photo && m.name && m.photo !== PLACEHOLDER_PHOTO),
 	)
 
-	const filteredMembers = computed(() => {
-		if (departmentFilter.value.length === 0) return allMembers.value
-		return allMembers.value.filter(m => departmentFilter.value.includes(m.department))
-	})
-
-	const departments = computed(() => {
-		const depts = new Set(allMembers.value.map(m => m.department))
-		return [...depts].sort()
-	})
-
 	const masteredCount = computed(() => {
-		return filteredMembers.value.filter(m => {
+		return allMembers.value.filter(m => {
 			const p = progress.value.people[m.id]
 			return p && p.stage >= 4
 		}).length
 	})
 
-	const totalCount = computed(() => filteredMembers.value.length)
+	const totalCount = computed(() => allMembers.value.length)
 
 	const levelProgress = computed(() => {
 		const xpForLevel = progress.value.level * 100
@@ -151,7 +140,7 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 
 	function pickNextPerson(): TeamMember | null {
 		const now = Date.now()
-		const members = filteredMembers.value
+		const members = allMembers.value
 
 		if (members.length === 0) return null
 
@@ -232,14 +221,14 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 	}
 
 	function getRandomOptions(correct: TeamMember, count: number): string[] {
-		const others = filteredMembers.value.filter(m => m.id !== correct.id)
+		const others = allMembers.value.filter(m => m.id !== correct.id)
 		const shuffled = others.sort(() => Math.random() - 0.5).slice(0, count - 1)
 		const options = [...shuffled.map(m => m.name), correct.name]
 		return options.sort(() => Math.random() - 0.5)
 	}
 
 	function getRandomPhotoOptions(correct: TeamMember, count: number): TeamMember[] {
-		const others = filteredMembers.value.filter(m => m.id !== correct.id)
+		const others = allMembers.value.filter(m => m.id !== correct.id)
 		const shuffled = others.sort(() => Math.random() - 0.5).slice(0, count - 1)
 		return [...shuffled, correct].sort(() => Math.random() - 0.5)
 	}
@@ -249,7 +238,7 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 		let type: ChallengeType = STAGE_TO_TYPE[Math.min(pp.stage, 4)]
 
 		// At recognize stage, randomly alternate between name-pick and face-pick
-		if (type === 'recognize' && filteredMembers.value.length >= 4) {
+		if (type === 'recognize' && allMembers.value.length >= 4) {
 			type = Math.random() < 0.5 ? 'recognize' : 'pick-face'
 		}
 
@@ -380,8 +369,6 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 		loading,
 		loadError,
 		allMembers,
-		departments,
-		filteredMembers,
 		masteredCount,
 		totalCount,
 		levelProgress,
