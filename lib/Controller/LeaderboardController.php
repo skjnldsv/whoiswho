@@ -43,8 +43,8 @@ class LeaderboardController extends OCSController {
 		if ($user === null) {
 			return new DataResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
 		}
-		if ($score <= 0) {
-			return new DataResponse(['error' => 'Score must be positive'], Http::STATUS_BAD_REQUEST);
+		if ($score <= 0 || $score > 100_000) {
+			return new DataResponse(['error' => 'Score out of valid range'], Http::STATUS_BAD_REQUEST);
 		}
 		$this->mapper->upsertScore($user->getUID(), $user->getDisplayName(), $score);
 		return new DataResponse(['ok' => true]);

@@ -24,7 +24,7 @@ class LeaderboardMapper extends QBMapper {
 	/** @return array<array-key, array<string, mixed>> */
 	public function getTopAllTime(int $limit = 20): array {
 		$qb = $this->db->getQueryBuilder();
-		$qb->select('user_id', 'display_name', 'total_score', 'updated_at')
+		$qb->select('display_name', 'total_score', 'updated_at')
 			->from($this->tableName)
 			->orderBy('total_score', 'DESC')
 			->setMaxResults($limit);
@@ -38,7 +38,7 @@ class LeaderboardMapper extends QBMapper {
 	public function getTopWeekly(int $limit = 20): array {
 		$currentWeek = $this->getCurrentWeekLabel();
 		$qb = $this->db->getQueryBuilder();
-		$qb->select('user_id', 'display_name', 'week_score', 'week_label')
+		$qb->select('display_name', 'week_score', 'week_label')
 			->from($this->tableName)
 			->where($qb->expr()->eq('week_label', $qb->createNamedParameter($currentWeek)))
 			->orderBy('week_score', 'DESC')
@@ -63,35 +63,41 @@ class LeaderboardMapper extends QBMapper {
 		$result->closeCursor();
 
 		if ($existing === false) {
-			// First entry for this user
-			$qb = $this->db->getQueryBuilder();
-			$qb->insert($this->tableName)
-				->values([
-					'user_id' => $qb->createNamedParameter($userId),
-					'display_name' => $qb->createNamedParameter($displayName),
-					'total_score' => $qb->createNamedParameter($scoreToAdd, IQueryBuilder::PARAM_INT),
-					'week_label' => $qb->createNamedParameter($currentWeek),
-					'week_score' => $qb->createNamedParameter($scoreToAdd, IQueryBuilder::PARAM_INT),
-					'updated_at' => $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT),
-				])
-				->executeStatement();
-		} else {
-			// Accumulate: if same week add week_score, otherwise reset it
-			$weekScore = ($existing['week_label'] === $currentWeek)
-				? (int)$existing['week_score'] + $scoreToAdd
-				: $scoreToAdd;
-			$totalScore = (int)$existing['total_score'] + $scoreToAdd;
-
-			$qb = $this->db->getQueryBuilder();
-			$qb->update($this->tableName)
-				->set('display_name', $qb->createNamedParameter($displayName))
-				->set('total_score', $qb->createNamedParameter($totalScore, IQueryBuilder::PARAM_INT))
-				->set('week_label', $qb->createNamedParameter($currentWeek))
-				->set('week_score', $qb->createNamedParameter($weekScore, IQueryBuilder::PARAM_INT))
-				->set('updated_at', $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT))
-				->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-				->executeStatement();
+			// First entry for this user — guard against a concurrent insert
+			try {
+				$qb = $this->db->getQueryBuilder();
+				$qb->insert($this->tableName)
+					->values([
+						'user_id' => $qb->createNamedParameter($userId),
+						'display_name' => $qb->createNamedParameter($displayName),
+						'total_score' => $qb->createNamedParameter($scoreToAdd, IQueryBuilder::PARAM_INT),
+						'week_label' => $qb->createNamedParameter($currentWeek),
+						'week_score' => $qb->createNamedParameter($scoreToAdd, IQueryBuilder::PARAM_INT),
+						'updated_at' => $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT),
+					])
+					->executeStatement();
+				return;
+			} catch (\Exception) {
+				// Another request already inserted a row; fall through to UPDATE below
+				$existing = ['total_score' => 0, 'week_label' => '', 'week_score' => 0];
+			}
 		}
+
+		// Accumulate: if same week add week_score, otherwise reset it
+		$weekScore = ($existing['week_label'] === $currentWeek)
+			? (int)$existing['week_score'] + $scoreToAdd
+			: $scoreToAdd;
+		$totalScore = (int)$existing['total_score'] + $scoreToAdd;
+
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->tableName)
+			->set('display_name', $qb->createNamedParameter($displayName))
+			->set('total_score', $qb->createNamedParameter($totalScore, IQueryBuilder::PARAM_INT))
+			->set('week_label', $qb->createNamedParameter($currentWeek))
+			->set('week_score', $qb->createNamedParameter($weekScore, IQueryBuilder::PARAM_INT))
+			->set('updated_at', $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->executeStatement();
 	}
 
 	private function getCurrentWeekLabel(): string {

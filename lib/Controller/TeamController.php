@@ -36,7 +36,7 @@ class TeamController extends OCSController {
 			]);
 			$html = (string)$response->getBody();
 		} catch (\Exception $e) {
-			return new DataResponse(['error' => 'Failed to fetch team page: ' . $e->getMessage()], 503);
+			return new DataResponse(['error' => 'Failed to fetch team page'], 503);
 		}
 
 		$members = $this->parseTeamPage($html);
@@ -74,7 +74,7 @@ class TeamController extends OCSController {
 				foreach ($imgMatches[1] as $j => $v) {
 					$url = $v !== '' ? $v : $imgMatches[2][$j];
 					$url = trim($url, " \t\n\r\0\x0B\"'");
-					if ($url !== '') {
+					if ($url !== '' && str_starts_with($url, 'https://nextcloud.com/')) {
 						$images[] = $url;
 					}
 				}
