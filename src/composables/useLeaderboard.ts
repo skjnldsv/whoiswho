@@ -6,6 +6,7 @@
 import { ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { getCurrentUser } from '@nextcloud/auth'
 
 export interface LeaderboardEntry {
 	user_id: string
@@ -27,8 +28,8 @@ export function useLeaderboard() {
 	const loading = ref(false)
 	const error = ref(false)
 
-	// Current Nextcloud user ID (set by server in OC.currentUser)
-	const currentUser: string = (window as unknown as { OC?: { currentUser?: string } }).OC?.currentUser ?? ''
+	// Current Nextcloud user ID
+	const currentUser: string = getCurrentUser()?.uid ?? ''
 
 	async function fetchScores(): Promise<void> {
 		loading.value = true

@@ -1,11 +1,15 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 John Molakvoæ <skjnldsv@protonmail.com>
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+  -->
 <template>
 	<div class="leaderboard-screen">
 		<!-- Header -->
 		<div class="lb-header">
 			<h2 class="lb-title">🏆 Leaderboard</h2>
-			<button class="btn-back" @click="emit('close')">
+			<NcButton type="tertiary" @click="emit('close')">
 				← Back
-			</button>
+			</NcButton>
 		</div>
 
 		<!-- Tabs -->
@@ -62,6 +66,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import { useLeaderboard } from '../composables/useLeaderboard'
 import type { LeaderboardEntry } from '../composables/useLeaderboard'
 
@@ -120,21 +125,6 @@ onMounted(fetchScores)
 	margin: 0;
 	font-size: 1.4rem;
 	font-weight: 700;
-}
-
-.btn-back {
-	padding: 8px 18px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-pill, 20px);
-	background: transparent;
-	color: var(--color-main-text);
-	font-size: 0.9rem;
-	font-weight: 600;
-	cursor: pointer;
-	transition: background 0.15s;
-}
-.btn-back:hover {
-	background: var(--color-background-hover);
 }
 
 /* ── Tabs ── */

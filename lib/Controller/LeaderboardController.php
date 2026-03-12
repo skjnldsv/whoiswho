@@ -28,10 +28,6 @@ class LeaderboardController extends Controller {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
-	/**
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function getScores(): JSONResponse {
@@ -40,9 +36,6 @@ class LeaderboardController extends Controller {
 		return new JSONResponse(['allTime' => $allTime, 'weekly' => $weekly]);
 	}
 
-	/**
-	 * @NoAdminRequired
-	 */
 	#[NoAdminRequired]
 	public function submitScore(int $score): JSONResponse {
 		$user = $this->userSession->getUser();

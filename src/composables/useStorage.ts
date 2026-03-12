@@ -3,7 +3,12 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-const STORAGE_KEY = 'nc-whos-who-progress'
+import { getBuilder } from '@nextcloud/browser-storage'
+
+const storage = getBuilder('whoiswho').persist().build()
+const STORAGE_KEY = 'progress'
+// Legacy key used before migration to @nextcloud/browser-storage
+const LEGACY_STORAGE_KEY = 'nc-whos-who-progress'
 
 export interface PersonProgress {
 	personId: number
@@ -43,9 +48,17 @@ function defaultProgress(): GameProgress {
 
 export function loadProgress(): GameProgress {
 	try {
-		const raw = localStorage.getItem(STORAGE_KEY)
+		const raw = storage.getItem(STORAGE_KEY)
 		if (raw) {
 			return { ...defaultProgress(), ...JSON.parse(raw) }
+		}
+		// Migrate from legacy localStorage key
+		const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
+		if (legacy) {
+			const parsed = { ...defaultProgress(), ...JSON.parse(legacy) }
+			storage.setItem(STORAGE_KEY, JSON.stringify(parsed))
+			localStorage.removeItem(LEGACY_STORAGE_KEY)
+			return parsed
 		}
 	} catch {
 		// corrupted data, start fresh
@@ -54,11 +67,11 @@ export function loadProgress(): GameProgress {
 }
 
 export function saveProgress(progress: GameProgress): void {
-	localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
+	storage.setItem(STORAGE_KEY, JSON.stringify(progress))
 }
 
 export function resetProgress(): void {
-	localStorage.removeItem(STORAGE_KEY)
+	storage.removeItem(STORAGE_KEY)
 }
 
 export function getPersonProgress(progress: GameProgress, personId: number): PersonProgress {

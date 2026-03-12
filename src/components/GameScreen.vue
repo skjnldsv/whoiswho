@@ -1,3 +1,7 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 John Molakvoæ <skjnldsv@protonmail.com>
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+  -->
 <template>
 	<div class="game-screen">
 		<!-- ── Header: progress bar ── -->
@@ -102,11 +106,12 @@
 									:disabled="showingResult"
 									autocomplete="off"
 									@keydown.enter="handleTypedAnswer">
-								<button class="btn-submit"
+								<NcButton class="btn-submit"
 									:disabled="showingResult || !typedAnswer.trim()"
+									:aria-label="t('whoiswho', 'Submit answer')"
 									@click="handleTypedAnswer">
 									✓
-								</button>
+								</NcButton>
 							</div>
 						</div>
 
@@ -122,11 +127,12 @@
 									:disabled="showingResult"
 									autocomplete="off"
 									@keydown.enter="handleTypedAnswer">
-								<button class="btn-submit"
+								<NcButton class="btn-submit"
 									:disabled="showingResult || !typedAnswer.trim()"
+									:aria-label="t('whoiswho', 'Submit answer')"
 									@click="handleTypedAnswer">
 									✓
-								</button>
+								</NcButton>
 							</div>
 						</div>
 					</div>
@@ -136,13 +142,14 @@
 				<div v-if="hintText" class="hint-bubble">
 					💡 {{ hintText }}
 				</div>
-				<button v-if="!showingResult && currentChallenge.type !== 'meet' && !hintText"
+				<NcButton v-if="!showingResult && currentChallenge.type !== 'meet' && !hintText"
 					class="btn-hint"
+					type="tertiary"
 					:disabled="progress.xp < 10"
 					:title="progress.xp < 10 ? 'Need 10 XP for a hint' : 'Use hint (-10 XP)'"
 					@click="requestHint">
 					💡 Hint (-10 XP)
-				</button>
+				</NcButton>
 
 				<!-- Spacer pushes action row to bottom -->
 				<div class="flex-spacer" />
@@ -158,17 +165,19 @@
 							<span v-else>It's <strong>{{ currentChallenge.correctAnswer }}</strong></span>
 						</div>
 					</Transition>
-					<button v-if="currentChallenge.type === 'meet' && !showingResult"
+					<NcButton v-if="currentChallenge.type === 'meet' && !showingResult"
 						class="btn-action"
+						type="primary"
 						:disabled="answered"
 						@click="handleMeet">
 						Got it →
-					</button>
-					<button v-else-if="showingResult && currentChallenge.type !== 'meet'"
+					</NcButton>
+					<NcButton v-else-if="showingResult && currentChallenge.type !== 'meet'"
 						class="btn-action"
+						type="primary"
 						@click="handleNext">
 						{{ gameOver ? '📊 See Results' : 'Next →' }}
-					</button>
+					</NcButton>
 				</div>
 			</div>
 		</div>
@@ -196,6 +205,8 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, useTemplateRef } from 'vue'
+import { t } from '@nextcloud/l10n'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import type { Challenge } from '../composables/useGameEngine'
 import type { GameProgress } from '../composables/useStorage'
 import type { SessionStats } from '../composables/useGameEngine'
