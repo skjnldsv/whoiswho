@@ -49,11 +49,12 @@
 					'rank-bronze': i === 2,
 				}">
 				<span class="lb-rank">{{ rankLabel(i) }}</span>
-				<NcUserBubble
+				<NcAvatar
 					class="lb-avatar"
 					:user="entry.user_id"
 					:displayName="entry.display_name || entry.user_id"
-					:showUserStatus="false" />
+					:disableTooltip="true"
+					:hideStatus="true" />
 				<span class="lb-name">
 					{{ entry.display_name || entry.user_id }}
 					<span v-if="entry.user_id === currentUser" class="you-badge">You</span>
@@ -74,7 +75,7 @@
 <script setup lang="ts">
 import type { LeaderboardEntry } from '../composables/useLeaderboard.ts'
 
-import { NcUserBubble } from '@nextcloud/vue'
+import { NcAvatar } from '@nextcloud/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useLeaderboard } from '../composables/useLeaderboard.ts'
 import { rankLabel } from '../utils/strings.ts'
