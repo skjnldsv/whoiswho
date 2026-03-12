@@ -68,21 +68,20 @@
 			Complete the name:
 		</p>
 		<p class="masked-name">
-			{{ revealedMask || challenge.maskedName }}
+			{{ showingResult ? challenge.correctAnswer : (revealedMask || challenge.maskedName) }}
 		</p>
-		<div class="type-input-row">
+		<div v-if="!showingResult" class="type-input-row">
 			<input
 				ref="recallInput"
 				v-model="typedAnswer"
 				type="text"
 				class="name-input"
 				placeholder="Type the full name…"
-				:disabled="showingResult"
 				autocomplete="off"
 				@keydown.enter="handleTypedSubmit">
 			<button
 				class="btn-submit"
-				:disabled="showingResult || !typedAnswer.trim()"
+				:disabled="!typedAnswer.trim()"
 				:aria-label="t('whoiswho', 'Submit answer')"
 				@click="handleTypedSubmit">
 				✓
@@ -95,27 +94,33 @@
 		<p class="prompt">
 			Type this person's full name:
 		</p>
-		<div v-if="revealedMask" class="mask-hint">
-			🔤 {{ revealedMask }}
-		</div>
-		<div class="type-input-row">
-			<input
-				ref="typeInput"
-				v-model="typedAnswer"
-				type="text"
-				class="name-input"
-				placeholder="Full name…"
-				:disabled="showingResult"
-				autocomplete="off"
-				@keydown.enter="handleTypedSubmit">
-			<button
-				class="btn-submit"
-				:disabled="showingResult || !typedAnswer.trim()"
-				:aria-label="t('whoiswho', 'Submit answer')"
-				@click="handleTypedSubmit">
-				✓
-			</button>
-		</div>
+		<template v-if="showingResult">
+			<p class="masked-name">
+				{{ challenge.correctAnswer }}
+			</p>
+		</template>
+		<template v-else>
+			<div v-if="revealedMask" class="mask-hint">
+				🔤 {{ revealedMask }}
+			</div>
+			<div class="type-input-row">
+				<input
+					ref="typeInput"
+					v-model="typedAnswer"
+					type="text"
+					class="name-input"
+					placeholder="Full name…"
+					autocomplete="off"
+					@keydown.enter="handleTypedSubmit">
+				<button
+					class="btn-submit"
+					:disabled="!typedAnswer.trim()"
+					:aria-label="t('whoiswho', 'Submit answer')"
+					@click="handleTypedSubmit">
+					✓
+				</button>
+			</div>
+		</template>
 	</div>
 </template>
 
@@ -387,6 +392,7 @@ useHotKey((e) => e.key === 'Enter', (e) => {
 
 .type-input-row {
 	display: flex;
+	align-items: center;
 	gap: 8px;
 }
 
@@ -401,6 +407,7 @@ useHotKey((e) => e.key === 'Enter', (e) => {
 	font-weight: 500;
 	outline: none;
 	transition: border-color 0.15s ease;
+	height: 44px !important;
 }
 
 .name-input::placeholder {
@@ -427,6 +434,8 @@ useHotKey((e) => e.key === 'Enter', (e) => {
 	cursor: pointer;
 	transition: background 0.15s ease;
 	flex-shrink: 0;
+	width: 44px !important;
+	height: 44px !important;
 }
 
 .btn-submit:hover:not(:disabled) { background: var(--color-primary-element-hover); }
@@ -458,8 +467,8 @@ useHotKey((e) => e.key === 'Enter', (e) => {
 }
 
 .face-grid {
-	display: flex;
-	flex-direction: row;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
 	gap: 10px;
 	flex: 1;
 	min-height: 0;

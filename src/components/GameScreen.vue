@@ -458,7 +458,6 @@ useHotKey('h', () => {
 .card-column {
 	flex: 0 0 min(300px, 42%);
 	display: flex;
-	align-items: center;
 	justify-content: center;
 	padding: 20px 16px;
 	border-inline-end: 1px solid var(--color-border);
@@ -587,10 +586,16 @@ kbd {
 	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	position: relative;
+	/* Always reserve the button footprint so the result banner doesn't shift layout */
+	min-height: var(--clickable-area-large, 44px);
 }
 
 .result-msg {
+	position: absolute;
+	bottom: calc(100% + 8px);
+	left: 0;
+	right: 0;
 	display: flex;
 	align-items: center;
 	gap: 10px;

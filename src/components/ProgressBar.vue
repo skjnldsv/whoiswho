@@ -9,11 +9,11 @@
 				<span class="stat-icon">⭐</span>
 				<span class="stat-label">Level {{ level }}</span>
 			</div>
-			<div class="stat">
+			<div class="stat stat--right">
 				<span class="stat-icon">✅</span>
 				<span class="stat-value">{{ mastered }}/{{ total }}</span>
 			</div>
-			<div class="stat stat--right">
+			<div class="stat">
 				<span class="stat-icon">🔥</span>
 				<span class="stat-value">{{ streak }}</span>
 			</div>

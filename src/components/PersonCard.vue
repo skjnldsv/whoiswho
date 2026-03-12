@@ -68,7 +68,6 @@ function onImgError() {
 <style scoped>
 /* ── Card shell ──────────────────────────────────────────────*/
 .person-card {
-	width: min(220px, 90%);
 	margin: 0 auto;
 	border-radius: var(--border-radius-container-large);
 	background: var(--color-primary-element);
@@ -76,7 +75,7 @@ function onImgError() {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	padding: 24px 20px 20px;
+	padding: 24px;
 	gap: 16px;
 	transition: box-shadow 0.3s ease;
 	overflow: hidden;
