@@ -72,6 +72,23 @@ const ACTIVE_POOL_SIZE = 6
 // Monotonic counter — ensures Vue's Transition always sees a new key even when person+type stays the same
 let challengeSeq = 0
 
+// Levenshtein distance for close-answer detection
+function levenshtein(a: string, b: string): number {
+	const m = a.length
+	const n = b.length
+	const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+		Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
+	)
+	for (let i = 1; i <= m; i++) {
+		for (let j = 1; j <= n; j++) {
+			dp[i][j] = a[i - 1] === b[j - 1]
+				? dp[i - 1][j - 1]
+				: 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+		}
+	}
+	return dp[m][n]
+}
+
 export function useGameEngine() {
 	const progress = ref<GameProgress>(loadProgress())
 	const currentChallenge = ref<Challenge | null>(null)
@@ -89,6 +106,7 @@ export function useGameEngine() {
 	const gameOver = ref(false)
 	const showingResult = ref(false)
 	const lastAnswerCorrect = ref(false)
+	const lastAnswerClose = ref(false)
 	// Track last shown person to avoid showing the same person twice in a row
 	const lastPersonId = ref<number | null>(null)
 
@@ -286,6 +304,8 @@ export function useGameEngine() {
 		const normalizedAnswer = strip(answer)
 		const normalizedCorrect = strip(challenge.correctAnswer)
 		const isCorrect = isMeet || normalizedAnswer === normalizedCorrect
+		// A "close" answer has Levenshtein distance ≤ 2 (catches 1-2 char typos)
+		const isClose = !isCorrect && !isMeet && levenshtein(normalizedAnswer, normalizedCorrect) <= 2
 
 		pp.lastSeen = now
 		sessionStats.value.answered++
@@ -321,6 +341,24 @@ export function useGameEngine() {
 			if (pp.stage === 4) {
 				sessionStats.value.newlyMastered.push(challenge.person.name)
 			}
+		} else if (isClose) {
+			// Close answer: give ¼ XP, don't penalize stage or life (honest near-miss)
+			pp.totalWrong++
+			pp.correctStreak = 0
+			pp.nextReview = now + 30_000 // retry soon
+
+			sessionStats.value.wrong++
+			sessionStats.value.streak = 0
+			progress.value.currentStreak = 0
+
+			const partialXp = Math.ceil(XP_PER_STAGE[challenge.type] / 4)
+			progress.value.xp += partialXp
+			sessionStats.value.xpEarned += partialXp
+
+			const xpForLevelClose = progress.value.level * 100
+			if (progress.value.xp >= xpForLevelClose) {
+				progress.value.level++
+			}
 		} else {
 			pp.totalWrong++
 			pp.correctStreak = 0
@@ -338,6 +376,7 @@ export function useGameEngine() {
 		}
 
 		lastAnswerCorrect.value = isCorrect
+		lastAnswerClose.value = isClose
 		showingResult.value = true
 		saveProgress(progress.value)
 
@@ -357,6 +396,107 @@ export function useGameEngine() {
 		return `${person.title} — ${person.department}`
 	}
 
+	/**
+	 * Mark the current challenge as skipped (wrong but no life lost).
+	 * Used by the "I don't know" button.
+	 */
+	function skipAnswer() {
+		if (!currentChallenge.value || showingResult.value) return
+		const challenge = currentChallenge.value
+		const pp = getPersonProgress(progress.value, challenge.person.id)
+		const now = Date.now()
+
+		pp.lastSeen = now
+		pp.totalWrong++
+		pp.correctStreak = 0
+		pp.stage = Math.max(pp.stage - 1, 1)
+		pp.nextReview = now + 5000
+
+		sessionStats.value.answered++
+		sessionStats.value.wrong++
+		sessionStats.value.streak = 0
+		progress.value.totalAnswered++
+		progress.value.currentStreak = 0
+
+		lastAnswerCorrect.value = false
+		lastAnswerClose.value = false
+		showingResult.value = true
+		saveProgress(progress.value)
+	}
+
+	/**
+	 * Second-level hint for recall/type: reveals ~⅓ more letters.
+	 * Returns a new masked string or null when not applicable.
+	 */
+	function revealMoreLetters(): string | null {
+		if (!currentChallenge.value) return null
+		const type = currentChallenge.value.type
+		if (type !== 'recall' && type !== 'type') return null
+
+		const name = currentChallenge.value.person.name
+		// For 'type' there is no maskedName yet — generate a fresh base mask
+		const baseMask = currentChallenge.value.maskedName ?? generateMaskedName(name)
+
+		const hiddenIndices: number[] = []
+		for (let i = 0; i < baseMask.length; i++) {
+			if (baseMask[i] === '_') hiddenIndices.push(i)
+		}
+		if (hiddenIndices.length === 0) return baseMask
+
+		// Reveal ~⅓ of remaining hidden letters (minimum 2)
+		const revealCount = Math.max(2, Math.ceil(hiddenIndices.length / 3))
+		const toReveal = hiddenIndices.sort(() => Math.random() - 0.5).slice(0, revealCount)
+		const chars = Array.from(baseMask)
+		for (const idx of toReveal) {
+			chars[idx] = name[idx]
+		}
+		return chars.join('')
+	}
+
+	/**
+	 * Second-level hint for recognize/pick-face: returns the name of a wrong
+	 * option that should be eliminated, or null when not applicable.
+	 */
+	function eliminateWrongOption(): string | null {
+		if (!currentChallenge.value) return null
+		const challenge = currentChallenge.value
+
+		if (challenge.type === 'recognize' && challenge.options) {
+			const wrong = challenge.options.filter(o => o !== challenge.correctAnswer)
+			if (wrong.length === 0) return null
+			return wrong[Math.floor(Math.random() * wrong.length)]
+		}
+
+		if (challenge.type === 'pick-face' && challenge.photoOptions) {
+			const wrong = challenge.photoOptions.filter(m => m.name !== challenge.correctAnswer)
+			if (wrong.length === 0) return null
+			return wrong[Math.floor(Math.random() * wrong.length)].name
+		}
+
+		return null
+	}
+
+	/**
+	 * Perform the second hint (costs 15 XP).
+	 * Returns what was revealed so App.vue can store and display it.
+	 */
+	function useSecondHint(): { revealedMask: string | null; eliminatedOption: string | null } {
+		const empty = { revealedMask: null, eliminatedOption: null }
+		if (!currentChallenge.value) return empty
+		const cost = 15
+		if (progress.value.xp < cost) return empty
+
+		progress.value.xp -= cost
+		sessionStats.value.xpEarned -= cost
+		saveProgress(progress.value)
+
+		const type = currentChallenge.value.type
+		if (type === 'recall' || type === 'type') {
+			return { revealedMask: revealMoreLetters(), eliminatedOption: null }
+		}
+		return { revealedMask: null, eliminatedOption: eliminateWrongOption() }
+	}
+
 	return {
 		progress,
 		currentChallenge,
@@ -366,6 +506,7 @@ export function useGameEngine() {
 		gameOver,
 		showingResult,
 		lastAnswerCorrect,
+		lastAnswerClose,
 		loading,
 		loadError,
 		allMembers,
@@ -375,6 +516,8 @@ export function useGameEngine() {
 		startSession,
 		nextChallenge,
 		submitAnswer,
+		skipAnswer,
 		useHint,
+		useSecondHint,
 	}
 }

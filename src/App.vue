@@ -17,6 +17,7 @@
 			:current-challenge="currentChallenge"
 			:showing-result="showingResult"
 			:last-answer-correct="lastAnswerCorrect"
+			:last-answer-close="lastAnswerClose"
 			:progress="progress"
 			:session-stats="sessionStats"
 			:lives="lives"
@@ -26,8 +27,12 @@
 			:level-progress="levelProgress"
 			:game-over="gameOver"
 			:hint-text="hintText"
+			:hint-level="hintLevel"
+			:eliminated-options="eliminatedOptions"
+			:revealed-mask="revealedMask"
 			@answer="handleAnswer"
 			@next="handleNext"
+			@skip="handleSkip"
 			@hint="handleHint"
 			@end="endGame"
 		/>
@@ -60,6 +65,9 @@ import LeaderboardScreen from './components/LeaderboardScreen.vue'
 
 const screen = ref<'start' | 'game' | 'results' | 'leaderboard'>('start')
 const hintText = ref<string | null>(null)
+const hintLevel = ref(0)
+const eliminatedOptions = ref<string[]>([])
+const revealedMask = ref<string | null>(null)
 
 const { submitScore } = useLeaderboard()
 
@@ -72,6 +80,7 @@ const {
 	gameOver,
 	showingResult,
 	lastAnswerCorrect,
+	lastAnswerClose,
 	allMembers,
 	masteredCount,
 	totalCount,
@@ -79,11 +88,16 @@ const {
 	startSession,
 	nextChallenge,
 	submitAnswer,
+	skipAnswer,
 	useHint,
+	useSecondHint,
 } = useGameEngine()
 
 function startGame() {
 	hintText.value = null
+	hintLevel.value = 0
+	eliminatedOptions.value = []
+	revealedMask.value = null
 	startSession()
 	screen.value = 'game'
 }
@@ -93,9 +107,17 @@ function handleAnswer(answer: string) {
 	hintText.value = null
 }
 
+function handleSkip() {
+	skipAnswer()
+	hintText.value = null
+}
+
 function handleNext() {
 	nextChallenge()
 	hintText.value = null
+	hintLevel.value = 0
+	eliminatedOptions.value = []
+	revealedMask.value = null
 	if (gameOver.value) {
 		endGame()
 	}
@@ -107,11 +129,32 @@ function endGame() {
 	if (xp > 0) {
 		submitScore(xp)
 	}
+	hintText.value = null
+	hintLevel.value = 0
+	eliminatedOptions.value = []
+	revealedMask.value = null
 	screen.value = 'results'
 }
 
 function handleHint() {
-	hintText.value = useHint()
+	if (hintLevel.value === 0) {
+		const text = useHint()
+		if (text !== null) {
+			hintText.value = text
+			hintLevel.value = 1
+		}
+	} else if (hintLevel.value === 1) {
+		const result = useSecondHint()
+		if (result.revealedMask || result.eliminatedOption) {
+			if (result.revealedMask) {
+				revealedMask.value = result.revealedMask
+			}
+			if (result.eliminatedOption) {
+				eliminatedOptions.value = [...eliminatedOptions.value, result.eliminatedOption]
+			}
+			hintLevel.value = 2
+		}
+	}
 }
 
 function handleReset() {

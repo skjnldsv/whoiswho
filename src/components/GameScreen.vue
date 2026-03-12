@@ -118,6 +118,9 @@
 						<!-- Type: free recall -->
 						<div v-else-if="currentChallenge.type === 'type'" class="type-area">
 							<p class="prompt">Type this person's full name:</p>
+							<div v-if="revealedMask" class="hint-bubble hint-bubble--inline">
+								🔤 {{ revealedMask }}
+							</div>
 							<div class="type-input-row">
 								<input ref="typeInput"
 									v-model="typedAnswer"
@@ -138,17 +141,24 @@
 					</div>
 				</Transition>
 
-				<!-- Hint -->
+				<!-- Hints + skip row -->
 				<div v-if="hintText" class="hint-bubble">
 					💡 {{ hintText }}
 				</div>
-				<button v-if="!showingResult && currentChallenge.type !== 'meet' && !hintText"
-					class="btn-hint"
-					:disabled="progress.xp < 10"
-					:title="progress.xp < 10 ? 'Need 10 XP for a hint' : 'Use hint (-10 XP)'"
-					@click="requestHint">
-					💡 Hint (-10 XP)
-				</button>
+				<div v-if="!showingResult && currentChallenge.type !== 'meet'" class="hint-skip-row">
+					<button v-if="hintLevel < 2"
+						class="btn-hint"
+						:disabled="progress.xp < (hintLevel === 0 ? 10 : 15)"
+						:title="hintLevel === 0
+							? (progress.xp < 10 ? 'Need 10 XP for a hint' : 'Use hint (-10 XP)')
+							: (progress.xp < 15 ? 'Need 15 XP for more help' : 'Reveal more (-15 XP)')"
+						@click="requestHint">
+						💡 {{ hintLevel === 0 ? 'Hint' : 'More help' }} <kbd>H</kbd>
+					</button>
+					<button class="btn-skip" @click="handleSkip">
+						🤷 I don't know <kbd>Esc</kbd>
+					</button>
+				</div>
 
 				<!-- Spacer pushes action row to bottom -->
 				<div class="flex-spacer" />
@@ -158,9 +168,14 @@
 					<Transition name="fade">
 						<div v-if="showingResult && currentChallenge.type !== 'meet'"
 							class="result-msg"
-							:class="lastAnswerCorrect ? 'result-correct' : 'result-wrong'">
-							<span class="feedback-icon">{{ lastAnswerCorrect ? '✨' : '😕' }}</span>
+							:class="{
+								'result-correct': lastAnswerCorrect,
+								'result-close': lastAnswerClose && !lastAnswerCorrect,
+								'result-wrong': !lastAnswerCorrect && !lastAnswerClose,
+							}">
+							<span class="feedback-icon">{{ lastAnswerCorrect ? '✨' : lastAnswerClose ? '🎯' : '😕' }}</span>
 							<span v-if="lastAnswerCorrect">Correct! +{{ xpEarned }} XP</span>
+							<span v-else-if="lastAnswerClose">So close! It's <strong>{{ currentChallenge.correctAnswer }}</strong> (+{{ xpEarned }} XP)</span>
 							<span v-else>It's <strong>{{ currentChallenge.correctAnswer }}</strong></span>
 						</div>
 					</Transition>
@@ -168,12 +183,12 @@
 						class="btn-action"
 						:disabled="answered"
 						@click="handleMeet">
-						Got it →
+						Got it → <kbd>↵</kbd>
 					</button>
 					<button v-else-if="showingResult && currentChallenge.type !== 'meet'"
 						class="btn-action"
 						@click="handleNext">
-						{{ gameOver ? '📊 See Results' : 'Next →' }}
+						{{ gameOver ? '📊 See Results' : (autoSkipCountdown > 0 ? `Next → (${autoSkipCountdown}s)` : 'Next →') }} <kbd>↵</kbd>
 					</button>
 				</div>
 			</div>
@@ -203,6 +218,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, useTemplateRef } from 'vue'
 import { t } from '@nextcloud/l10n'
+import { useHotKey } from '@nextcloud/vue'
 import type { Challenge } from '../composables/useGameEngine'
 import type { GameProgress } from '../composables/useStorage'
 import type { SessionStats } from '../composables/useGameEngine'
@@ -213,6 +229,7 @@ const props = defineProps<{
 	currentChallenge: Challenge | null
 	showingResult: boolean
 	lastAnswerCorrect: boolean
+	lastAnswerClose: boolean
 	progress: GameProgress
 	sessionStats: SessionStats
 	lives: number
@@ -222,11 +239,15 @@ const props = defineProps<{
 	levelProgress: number
 	gameOver: boolean
 	hintText?: string | null
+	hintLevel: number
+	eliminatedOptions: string[]
+	revealedMask?: string | null
 }>()
 
 const emit = defineEmits<{
 	answer: [value: string]
 	next: []
+	skip: []
 	hint: []
 	end: []
 }>()
@@ -251,10 +272,31 @@ const typeInput = useTemplateRef<HTMLInputElement>('typeInput')
 const answered = ref(false)
 // Prevent double-navigation when clicking Next
 const advancing = ref(false)
+// Auto-skip countdown (seconds remaining)
+const autoSkipCountdown = ref(0)
+let autoSkipTimeoutId: ReturnType<typeof setTimeout> | null = null
+let autoSkipIntervalId: ReturnType<typeof setInterval> | null = null
 
 // Strip diacritics for accent-agnostic comparison
 function normalizeText(s: string): string {
 	return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+// Local Levenshtein — mirrors the game engine so XP popup is shown immediately
+function levenshtein(a: string, b: string): number {
+	const m = a.length
+	const n = b.length
+	const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+		Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
+	)
+	for (let i = 1; i <= m; i++) {
+		for (let j = 1; j <= n; j++) {
+			dp[i][j] = a[i - 1] === b[j - 1]
+				? dp[i - 1][j - 1]
+				: 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+		}
+	}
+	return dp[m][n]
 }
 
 const xpEarned = ref(0)
@@ -267,6 +309,11 @@ const XP_PER_STAGE: Record<string, number> = {
 	type: 40,
 }
 
+function clearAutoSkipTimers() {
+	if (autoSkipTimeoutId !== null) { clearTimeout(autoSkipTimeoutId); autoSkipTimeoutId = null }
+	if (autoSkipIntervalId !== null) { clearInterval(autoSkipIntervalId); autoSkipIntervalId = null }
+}
+
 // Reset per-challenge state when a new challenge arrives
 watch(() => props.currentChallenge, async () => {
 	answered.value = false
@@ -274,6 +321,8 @@ watch(() => props.currentChallenge, async () => {
 	typedAnswer.value = ''
 	chosenAnswer.value = ''
 	xpEarned.value = 0
+	clearAutoSkipTimers()
+	autoSkipCountdown.value = 0
 	await nextTick()
 	recallInput.value?.focus()
 	typeInput.value?.focus()
@@ -319,8 +368,13 @@ function handleTypedAnswer() {
 	emit('answer', typedAnswer.value)
 
 	if (props.currentChallenge) {
-		if (normalizeText(typedAnswer.value) === normalizeText(props.currentChallenge.correctAnswer)) {
+		const norm = normalizeText(typedAnswer.value)
+		const correct = normalizeText(props.currentChallenge.correctAnswer)
+		if (norm === correct) {
 			xpEarned.value = XP_PER_STAGE[props.currentChallenge.type]
+			triggerXpPopup(xpEarned.value)
+		} else if (levenshtein(norm, correct) <= 2) {
+			xpEarned.value = Math.ceil(XP_PER_STAGE[props.currentChallenge.type] / 4)
 			triggerXpPopup(xpEarned.value)
 		}
 	}
@@ -329,6 +383,8 @@ function handleTypedAnswer() {
 function handleNext() {
 	if (advancing.value) return
 	advancing.value = true
+	clearAutoSkipTimers()
+	autoSkipCountdown.value = 0
 	if (props.gameOver) {
 		emit('end')
 	} else {
@@ -336,11 +392,17 @@ function handleNext() {
 	}
 }
 
+function handleSkip() {
+	if (answered.value || props.showingResult) return
+	answered.value = true
+	emit('skip')
+}
+
 function requestHint() {
 	emit('hint')
 }
 
-// Auto-advance meet cards after showing XP briefly
+// Auto-advance meet cards; auto-skip other challenges after 3 s
 watch(() => props.showingResult, (showing) => {
 	if (showing && props.lastAnswerCorrect && props.currentChallenge?.type === 'meet') {
 		xpEarned.value = XP_PER_STAGE.meet
@@ -354,6 +416,19 @@ watch(() => props.showingResult, (showing) => {
 				emit('next')
 			}
 		}, 800)
+	} else if (showing && props.currentChallenge?.type !== 'meet') {
+		// Start 3-second auto-skip countdown
+		autoSkipCountdown.value = 3
+		autoSkipIntervalId = setInterval(() => {
+			autoSkipCountdown.value--
+			if (autoSkipCountdown.value <= 0) {
+				clearAutoSkipTimers()
+			}
+		}, 1000)
+		autoSkipTimeoutId = setTimeout(() => { handleNext() }, 3000)
+	} else if (!showing) {
+		clearAutoSkipTimers()
+		autoSkipCountdown.value = 0
 	}
 })
 
@@ -372,6 +447,46 @@ function confettiStyle(i: number) {
 		backgroundColor: colors[i % colors.length],
 	}
 }
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+
+// Enter → submit typed answer (non-inputs) or advance when showing result
+useHotKey((e) => e.key === 'Enter', (e) => {
+	e.preventDefault()
+	if (props.showingResult) {
+		handleNext()
+	} else if (props.currentChallenge?.type === 'meet' && !answered.value) {
+		handleMeet()
+	}
+})
+
+// Escape → I don't know
+useHotKey('Escape', () => {
+	if (!props.showingResult && !answered.value && props.currentChallenge?.type !== 'meet') {
+		handleSkip()
+	}
+})
+
+// H → hint
+useHotKey('h', () => {
+	if (!props.showingResult && !answered.value && props.currentChallenge?.type !== 'meet' && props.hintLevel < 2) {
+		requestHint()
+	}
+})
+
+// 1-4 → select choice / face (recognize / pick-face)
+useHotKey(['1', '2', '3', '4'], (e) => {
+	if (props.showingResult || answered.value) return
+	const idx = parseInt(e.key) - 1
+	const type = props.currentChallenge?.type
+	if (type === 'recognize' && props.currentChallenge?.options) {
+		const visible = props.currentChallenge.options.filter(o => !props.eliminatedOptions.includes(o))
+		if (visible[idx] !== undefined) handleChoice(visible[idx])
+	} else if (type === 'pick-face' && props.currentChallenge?.photoOptions) {
+		const visible = props.currentChallenge.photoOptions.filter(m => !props.eliminatedOptions.includes(m.name))
+		if (visible[idx] !== undefined) handleChoice(visible[idx].name)
+	}
+})
 </script>
 
 <style scoped>
@@ -637,6 +752,87 @@ function confettiStyle(i: number) {
 
 .btn-hint:disabled { opacity: 0.4; cursor: default; }
 
+/* ── Hint + skip row ─────────────────────────────*/
+.hint-skip-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	flex-shrink: 0;
+}
+
+/* Inline hint bubble (inside type-area) */
+.hint-bubble--inline {
+	font-family: 'Courier New', monospace;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+}
+
+/* ── "I don't know" skip button ──────────────────*/
+.btn-skip {
+	margin: 0;
+	padding: 6px 14px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-element);
+	background: transparent;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.78rem;
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease;
+	flex-shrink: 0;
+}
+
+.btn-skip:hover {
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+}
+
+/* ── Keyboard shortcut labels ────────────────────*/
+kbd {
+	display: inline-block;
+	padding: 1px 5px;
+	border: 1px solid currentColor;
+	border-radius: 4px;
+	font-size: 0.65em;
+	font-family: inherit;
+	opacity: 0.7;
+	vertical-align: middle;
+	line-height: 1.4;
+}
+
+.key-hint {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.4em;
+	height: 1.4em;
+	margin-inline-end: 6px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: 4px;
+	font-size: 0.75em;
+	font-weight: 700;
+	opacity: 0.6;
+	flex-shrink: 0;
+	vertical-align: middle;
+}
+
+.face-key-hint {
+	position: absolute;
+	top: 6px;
+	inset-inline-start: 6px;
+	width: 22px;
+	height: 22px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.55);
+	color: #fff;
+	border-radius: 5px;
+	font-size: 0.72rem;
+	font-weight: 700;
+	z-index: 1;
+}
+
 /* ── Action area ─────────────────────────────────*/
 .action-area {
 	flex-shrink: 0;
@@ -665,6 +861,12 @@ function confettiStyle(i: number) {
 	background: var(--color-error);
 	border: 1px solid var(--color-element-error);
 	color: var(--color-text-error);
+}
+
+.result-close {
+	background: var(--color-warning);
+	border: 1px solid var(--color-element-warning);
+	color: var(--color-main-text);
 }
 
 .feedback-icon {
