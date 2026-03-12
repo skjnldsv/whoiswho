@@ -4,6 +4,7 @@
  */
 
 import { getBuilder } from '@nextcloud/browser-storage'
+import { MAX_LIVES } from '../constants.ts'
 
 const storage = getBuilder('whoiswho').persist().build()
 const STORAGE_KEY = 'progress'
@@ -18,6 +19,8 @@ export interface PersonProgress {
 	totalWrong: number
 	lastSeen: number // timestamp
 	nextReview: number // timestamp
+	avgResponseTime: number // average milliseconds to answer
+	lastResponseTime: number // most recent response time in milliseconds
 }
 
 export interface GameProgress {
@@ -30,12 +33,14 @@ export interface GameProgress {
 	currentStreak: number
 	sessionsPlayed: number
 	lastPlayed: number
+	currentLives: number // persisted lives to prevent force-close exploit
+	sessionActive: boolean // whether a session is currently in progress
 }
 
 /**
  *
  */
-function defaultProgress(): GameProgress {
+export function defaultProgress(): GameProgress {
 	return {
 		people: {},
 		xp: 0,
@@ -46,6 +51,8 @@ function defaultProgress(): GameProgress {
 		currentStreak: 0,
 		sessionsPlayed: 0,
 		lastPlayed: 0,
+		currentLives: MAX_LIVES,
+		sessionActive: false,
 	}
 }
 
@@ -102,7 +109,17 @@ export function getPersonProgress(progress: GameProgress, personId: number): Per
 			totalWrong: 0,
 			lastSeen: 0,
 			nextReview: 0,
+			avgResponseTime: 0,
+			lastResponseTime: 0,
 		}
 	}
-	return progress.people[personId]
+	// Migrate legacy records that predate the response-time fields
+	const pp = progress.people[personId]
+	if (pp.avgResponseTime === undefined) {
+		pp.avgResponseTime = 0
+	}
+	if (pp.lastResponseTime === undefined) {
+		pp.lastResponseTime = 0
+	}
+	return pp
 }

@@ -67,6 +67,17 @@
 
 			<!-- RIGHT: challenge interaction -->
 			<div class="challenge-column">
+				<!-- Countdown timer bar (hidden for meet challenges and while showing result) -->
+				<div
+					v-if="currentChallenge.timeLimit > 0 && !showingResult"
+					class="timer-bar">
+					<div
+						class="timer-fill"
+						:style="{ width: (timeRemainingMs / currentChallenge.timeLimit * 100) + '%' }"
+						:class="{ 'timer-fill--warning': timeRemainingMs < 5000 }" />
+					<span class="timer-text">{{ Math.ceil(timeRemainingMs / 1000) }}s</span>
+				</div>
+
 				<!-- Challenge input (animates per challenge) -->
 				<Transition name="fade" mode="out-in">
 					<div :key="currentChallenge.seq" class="input-area" :class="{ 'pick-face': currentChallenge.type === 'pick-face' }">
@@ -118,9 +129,13 @@
 								:src="currentChallenge.person.photo"
 								:alt="currentChallenge.person.name"
 								class="result-avatar">
-							<span class="feedback-icon">{{ lastAnswerCorrect ? '✨' : lastAnswerClose ? '🎯' : '😕' }}</span>
-							<span v-if="lastAnswerCorrect">Correct! +{{ xpEarned }} XP</span>
+							<span class="feedback-icon">{{ lastAnswerCorrect ? '✨' : lastAnswerClose ? '🎯' : timedOut ? '⏰' : '😕' }}</span>
+							<span v-if="lastAnswerCorrect">
+								Correct! +{{ xpEarned }} XP
+								<span v-if="lastResponseTime > 0" class="response-time">· {{ (lastResponseTime / 1000).toFixed(1) }}s</span>
+							</span>
 							<span v-else-if="lastAnswerClose">So close! It's <strong>{{ currentChallenge.correctAnswer }}</strong> (+{{ xpEarned }} XP)</span>
+							<span v-else-if="timedOut">Time's up! It's <strong>{{ currentChallenge.correctAnswer }}</strong></span>
 							<span v-else>It's <strong>{{ currentChallenge.correctAnswer }}</strong></span>
 						</div>
 					</Transition>
@@ -172,12 +187,14 @@ import ChallengeInput from './ChallengeInput.vue'
 import PersonCard from './PersonCard.vue'
 import ProgressBar from './ProgressBar.vue'
 import { CLOSE_ANSWER_XP_DIVISOR, XP_PER_STAGE } from '../composables/useGameEngine.ts'
+import { FAST_ANSWER_BONUS_XP, FAST_ANSWER_THRESHOLD } from '../constants.ts'
 
 const props = defineProps<{
 	currentChallenge: Challenge | null
 	showingResult: boolean
 	lastAnswerCorrect: boolean
 	lastAnswerClose: boolean
+	lastResponseTime: number
 	progress: GameProgress
 	sessionStats: SessionStats
 	lives: number
@@ -216,6 +233,91 @@ const pickFacePhotoFailed = ref(false)
 let autoSkipTimeoutId: ReturnType<typeof setTimeout> | null = null
 const AUTO_SKIP_DELAY_MS = 3000 // ms before auto-advancing to next challenge
 
+// ── Timer state ────────────────────────────────────────────────────────────────
+// Whether the last answer timed out (used to show "Time's up!" in the result)
+const timedOut = ref(false)
+// Countdown: milliseconds remaining for the current challenge timer
+const timeRemainingMs = ref(0)
+let timerInterval: ReturnType<typeof setInterval> | null = null
+let timerStartMs = 0 // wall-clock ms when the current timer run started
+let accumulatedElapsedMs = 0 // ms elapsed before the current run (paused time excluded)
+
+/**
+ * Clear the countdown interval without modifying timerStartMs / accumulatedElapsedMs.
+ */
+function clearTimer() {
+	if (timerInterval !== null) {
+		clearInterval(timerInterval)
+		timerInterval = null
+	}
+}
+
+/**
+ * Tick function called every 100 ms by the timer interval.
+ */
+function tickTimer() {
+	const timeLimit = props.currentChallenge?.timeLimit ?? 0
+	const elapsed = accumulatedElapsedMs + (Date.now() - timerStartMs)
+	const remaining = Math.max(0, timeLimit - elapsed)
+	timeRemainingMs.value = remaining
+
+	if (remaining === 0) {
+		clearTimer()
+		if (!props.showingResult && !answered.value) {
+			timedOut.value = true
+			answered.value = true
+			emit('answer', '') // empty string → wrong answer → costs a life
+		}
+	}
+}
+
+/**
+ * Start (or restart) the countdown for the current challenge.
+ *
+ * @param timeLimit milliseconds (0 = no timer)
+ */
+function startTimer(timeLimit: number) {
+	clearTimer()
+	if (timeLimit === 0) {
+		return
+	}
+	accumulatedElapsedMs = 0
+	timerStartMs = Date.now()
+	timeRemainingMs.value = timeLimit
+	timerInterval = setInterval(tickTimer, 100)
+}
+
+/**
+ * Pause the timer (e.g. while a hint is shown).
+ */
+function pauseTimer() {
+	if (timerInterval !== null) {
+		accumulatedElapsedMs += Date.now() - timerStartMs
+		clearTimer()
+	}
+}
+
+/**
+ * Resume the timer after a pause.
+ */
+function resumeTimer() {
+	const timeLimit = props.currentChallenge?.timeLimit ?? 0
+	if (timeLimit === 0 || props.showingResult || timeRemainingMs.value === 0) {
+		return
+	}
+	timerStartMs = Date.now()
+	timerInterval = setInterval(tickTimer, 100)
+}
+
+// Pause timer when a hint is shown; resume when it is dismissed
+watch(() => props.hintLevel, (newLevel, oldLevel) => {
+	if (newLevel > 0 && oldLevel === 0) {
+		pauseTimer()
+	} else if (newLevel === 0 && oldLevel > 0) {
+		resumeTimer()
+	}
+})
+
 /**
  *
  */
@@ -228,12 +330,14 @@ function clearAutoSkipTimers() {
 }
 
 // Reset per-challenge state when a new challenge arrives
-watch(() => props.currentChallenge, () => {
+watch(() => props.currentChallenge, (challenge) => {
 	answered.value = false
 	advancing.value = false
 	xpEarned.value = 0
+	timedOut.value = false
 	pickFacePhotoFailed.value = false
 	clearAutoSkipTimers()
+	startTimer(challenge?.timeLimit ?? 0)
 })
 
 // Watch for streak milestones
@@ -259,9 +363,17 @@ watch(() => props.sessionStats.newlyMastered, (list) => {
 // Unified XP popup + auto-advance logic triggered by showingResult
 watch(() => props.showingResult, (showing) => {
 	if (showing && props.currentChallenge) {
+		// Stop the countdown — no longer needed once we have a result
+		clearTimer()
+
 		// Compute XP to display based on the engine's determination
 		if (props.lastAnswerCorrect) {
-			xpEarned.value = XP_PER_STAGE[props.currentChallenge.type]
+			const baseXp = XP_PER_STAGE[props.currentChallenge.type]
+			// Mirror the fast-answer bonus logic from the engine
+			const isFast = props.currentChallenge.timeLimit > 0
+				&& props.lastResponseTime > 0
+				&& props.lastResponseTime < props.currentChallenge.timeLimit * FAST_ANSWER_THRESHOLD
+			xpEarned.value = baseXp + (isFast ? FAST_ANSWER_BONUS_XP : 0)
 			triggerXpPopup(xpEarned.value)
 		} else if (props.lastAnswerClose) {
 			xpEarned.value = Math.ceil(XP_PER_STAGE[props.currentChallenge.type] / CLOSE_ANSWER_XP_DIVISOR)
@@ -501,6 +613,41 @@ useHotKey('h', () => {
 
 .flex-spacer {
 	flex: 1;
+}
+
+/* ── Timer bar ─────────────────────────────────────────────────────────────*/
+.timer-bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.timer-fill {
+	flex: 1;
+	height: 6px;
+	background: var(--color-primary-element);
+	border-radius: 3px;
+	transition: width 0.1s linear, background-color 0.3s ease;
+}
+
+.timer-fill--warning {
+	background: var(--color-error, #e9322d);
+}
+
+.timer-text {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+	min-width: 2.2em;
+	text-align: end;
+}
+
+/* ── Response time inline display ────────────────────────────────*/
+.response-time {
+	font-weight: 400;
+	opacity: 0.85;
+	font-size: 0.9em;
 }
 
 /* ── Hint ──────────────────────────────────────────────────────*/

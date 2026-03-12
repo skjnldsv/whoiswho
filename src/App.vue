@@ -20,6 +20,7 @@
 			:showingResult="showingResult"
 			:lastAnswerCorrect="lastAnswerCorrect"
 			:lastAnswerClose="lastAnswerClose"
+			:lastResponseTime="lastResponseTime"
 			:progress="progress"
 			:sessionStats="sessionStats"
 			:lives="lives"
@@ -44,11 +45,11 @@
 			:mastered="masteredCount"
 			:total="totalCount"
 			@playAgain="startGame"
-			@goHome="screen = 'start'"
+			@goHome="handleGoHome"
 			@leaderboard="screen = 'leaderboard'" />
 		<LeaderboardScreen
 			v-else-if="screen === 'leaderboard'"
-			@close="screen = 'start'" />
+			@close="handleGoHome" />
 	</div>
 </template>
 
@@ -60,7 +61,7 @@ import ResultsScreen from './components/ResultsScreen.vue'
 import StartScreen from './components/StartScreen.vue'
 import { useGameEngine } from './composables/useGameEngine.ts'
 import { useLeaderboard } from './composables/useLeaderboard.ts'
-import { resetProgress as doResetProgress } from './composables/useStorage.ts'
+import { defaultProgress, resetProgress as doResetProgress } from './composables/useStorage.ts'
 
 const screen = ref<'start' | 'game' | 'results' | 'leaderboard'>('start')
 const hintText = ref<string | null>(null)
@@ -80,6 +81,7 @@ const {
 	showingResult,
 	lastAnswerCorrect,
 	lastAnswerClose,
+	lastResponseTime,
 	loading,
 	loadError,
 	allMembers,
@@ -87,6 +89,7 @@ const {
 	totalCount,
 	levelProgress,
 	startSession,
+	endSession,
 	nextChallenge,
 	submitAnswer,
 	skipAnswer,
@@ -151,7 +154,17 @@ function endGame() {
 	hintLevel.value = 0
 	eliminatedOptions.value = []
 	revealedMask.value = null
+	endSession()
 	screen.value = 'results'
+}
+
+/**
+ * Navigate back to the start screen, resetting session-specific state.
+ * Called from the results screen and leaderboard.
+ */
+function handleGoHome() {
+	endSession()
+	screen.value = 'start'
 }
 
 /**
@@ -183,17 +196,7 @@ function handleHint() {
  */
 function handleReset() {
 	doResetProgress()
-	progress.value = {
-		people: {},
-		xp: 0,
-		level: 1,
-		totalAnswered: 0,
-		totalCorrect: 0,
-		bestStreak: 0,
-		currentStreak: 0,
-		sessionsPlayed: 0,
-		lastPlayed: 0,
-	}
+	progress.value = defaultProgress()
 }
 </script>
 

@@ -61,6 +61,22 @@ export const AUTO_SKIP_DELAY_MS = 3_000
 /** Milliseconds before auto-advancing from a "meet" card. */
 export const MEET_AUTO_ADVANCE_MS = 800
 
+// ── Answer timers (milliseconds) ─────────────────────────────────────────────
+/** Time limit per challenge type (0 = no timer). */
+export const ANSWER_TIME_LIMITS = {
+	meet: 0,
+	recognize: 15_000,
+	'pick-face': 15_000,
+	recall: 20_000,
+	type: 30_000,
+} as const
+
+/** Bonus XP awarded for answering faster than FAST_ANSWER_THRESHOLD of the time limit. */
+export const FAST_ANSWER_BONUS_XP = 2
+
+/** Fraction of time limit: answers below this threshold earn bonus XP. */
+export const FAST_ANSWER_THRESHOLD = 0.3
+
 // ── Placeholder ─────────────────────────────────────────────────────────────
 /** Nextcloud placeholder photo URL — members with this URL are excluded. */
 export const PLACEHOLDER_PHOTO = 'https://nextcloud.com/c/themes/nextcloud-theme/dist/img/person.jpg'

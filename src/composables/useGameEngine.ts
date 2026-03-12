@@ -12,6 +12,8 @@ import { generateOcsUrl } from '@nextcloud/router'
 import { computed, ref } from 'vue'
 import {
 	CLOSE_ANSWER_THRESHOLD,
+	FAST_ANSWER_BONUS_XP,
+	FAST_ANSWER_THRESHOLD,
 	HINT_COST_FIRST,
 	HINT_COST_SECOND,
 	MAX_LIVES,
@@ -33,6 +35,7 @@ import { pickNextPerson } from './useSpacedRepetition.ts'
 import {
 	type GameProgress,
 
+	getPersonProgress,
 	loadProgress,
 	saveProgress,
 } from './useStorage.ts'
@@ -82,8 +85,11 @@ export function useGameEngine() {
 	const showingResult = ref(false)
 	const lastAnswerCorrect = ref(false)
 	const lastAnswerClose = ref(false)
+	const lastResponseTime = ref(0) // ms taken to answer the most recent challenge
 	// Track last shown person to avoid showing the same person twice in a row
 	const lastPersonId = ref<number | null>(null)
+	// Track when the current challenge was shown, to measure response time
+	const challengeStartTime = ref(0)
 
 	// Runtime team data — fetched from PHP backend on first load
 	const allMembersRaw = ref<TeamMember[]>([])
@@ -134,12 +140,33 @@ export function useGameEngine() {
 			xpEarned: 0,
 			newlyMastered: [],
 		}
-		lives.value = MAX_LIVES
+
+		// Restore persisted lives if a session was interrupted (e.g. force-close),
+		// otherwise start fresh so the exploit of force-closing to regain hearts is closed.
+		if (progress.value.sessionActive) {
+			lives.value = progress.value.currentLives
+		} else {
+			lives.value = MAX_LIVES
+			progress.value.currentLives = MAX_LIVES
+		}
+
 		gameOver.value = false
+		progress.value.sessionActive = true
 		progress.value.sessionsPlayed++
 		progress.value.lastPlayed = Date.now()
 		saveProgress(progress.value)
 		nextChallenge()
+	}
+
+	/**
+	 * Mark the session as inactive and persist the state.
+	 * Resets the current streak since it is session-specific.
+	 * Call this when a session ends (game over or user navigates away).
+	 */
+	function endSession() {
+		progress.value.sessionActive = false
+		progress.value.currentStreak = 0
+		saveProgress(progress.value)
 	}
 
 	/**
@@ -159,6 +186,7 @@ export function useGameEngine() {
 		lastPersonId.value = person.id
 		showingResult.value = false
 		currentChallenge.value = buildChallenge(person, progress.value, allMembers.value)
+		challengeStartTime.value = Date.now()
 	}
 
 	/**
@@ -184,6 +212,18 @@ export function useGameEngine() {
 			&& normalizedAnswer.length > 0
 			&& levenshtein(normalizedAnswer, normalizedCorrect) <= CLOSE_ANSWER_THRESHOLD
 
+		// Measure how long the player took to answer
+		const responseTime = challengeStartTime.value > 0 ? Date.now() - challengeStartTime.value : 0
+		lastResponseTime.value = responseTime
+
+		// Update per-person response time stats (using running average over total answers)
+		const pp = getPersonProgress(progress.value, challenge.person.id)
+		pp.lastResponseTime = responseTime
+		const totalAnswers = pp.totalCorrect + pp.totalWrong + 1 // +1 for this answer (not yet recorded)
+		pp.avgResponseTime = pp.avgResponseTime === 0
+			? responseTime
+			: Math.round((pp.avgResponseTime * (totalAnswers - 1) + responseTime) / totalAnswers)
+
 		if (isCorrect) {
 			const { xp } = recordCorrect(
 				progress.value,
@@ -196,11 +236,16 @@ export function useGameEngine() {
 			sessionStats.value.streak++
 			sessionStats.value.xpEarned += xp
 
+			// Award bonus XP for fast correct answers on timed challenges
+			if (challenge.timeLimit > 0 && responseTime > 0 && responseTime < challenge.timeLimit * FAST_ANSWER_THRESHOLD) {
+				applyXp(progress.value, FAST_ANSWER_BONUS_XP)
+				sessionStats.value.xpEarned += FAST_ANSWER_BONUS_XP
+			}
+
 			if (sessionStats.value.streak > sessionStats.value.bestStreak) {
 				sessionStats.value.bestStreak = sessionStats.value.streak
 			}
 
-			const pp = progress.value.people[challenge.person.id]
 			if (pp && pp.stage === 4) {
 				sessionStats.value.newlyMastered.push(challenge.person.name)
 			}
@@ -217,8 +262,10 @@ export function useGameEngine() {
 			sessionStats.value.streak = 0
 
 			lives.value--
+			progress.value.currentLives = lives.value
 			if (lives.value <= 0) {
 				gameOver.value = true
+				endSession()
 			}
 		}
 
@@ -365,6 +412,7 @@ export function useGameEngine() {
 		showingResult,
 		lastAnswerCorrect,
 		lastAnswerClose,
+		lastResponseTime,
 		loading,
 		loadError,
 		allMembers,
@@ -372,6 +420,7 @@ export function useGameEngine() {
 		totalCount,
 		levelProgress,
 		startSession,
+		endSession,
 		nextChallenge,
 		submitAnswer,
 		skipAnswer,
