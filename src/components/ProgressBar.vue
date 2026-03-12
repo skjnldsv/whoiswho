@@ -92,15 +92,15 @@ defineProps<{
 
 .xp-bar {
 	height: 8px;
-	background: var(--color-background-dark, rgba(0, 0, 0, 0.1));
-	border-radius: var(--border-radius-pill, 4px);
+	background: var(--color-background-dark);
+	border-radius: var(--border-radius-pill);
 	overflow: hidden;
 }
 
 .xp-fill {
 	height: 100%;
-	background: var(--color-primary-element, #0082c9);
-	border-radius: var(--border-radius-pill, 4px);
+	background: var(--color-primary-element);
+	border-radius: var(--border-radius-pill);
 	transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 	display: flex;
 	align-items: center;
@@ -111,7 +111,7 @@ defineProps<{
 .xp-text {
 	font-size: 0.6rem;
 	font-weight: 700;
-	color: var(--color-primary-element-text, #fff);
+	color: var(--color-primary-element-text);
 	padding-inline-end: 6px;
 	white-space: nowrap;
 }

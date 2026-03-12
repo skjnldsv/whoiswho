@@ -447,14 +447,14 @@ function confettiStyle(i: number) {
 	display: inline-flex;
 	align-items: center;
 	padding: 4px 14px;
-	border-radius: var(--border-radius-pill, 20px);
+	border-radius: var(--border-radius-pill);
 	font-size: 0.78rem;
 	font-weight: 700;
 	letter-spacing: 0.05em;
 	text-transform: uppercase;
 }
 
-.stage-tag.meet        { background: var(--color-primary-element, #0082c9); color: var(--color-primary-element-text, #fff); }
+.stage-tag.meet        { background: var(--color-primary-element); color: var(--color-primary-element-text); }
 
 .stage-tag.recognize   { background: #9b59b6; color: #fff; }
 
@@ -474,7 +474,7 @@ function confettiStyle(i: number) {
 
 .sub-prompt {
 	font-size: 0.88rem;
-	color: var(--color-text-lighter, var(--color-sub-text, #888));
+	color: var(--color-text-maxcontrast);
 	margin: 0;
 }
 
@@ -500,8 +500,8 @@ function confettiStyle(i: number) {
 
 .choice-btn {
 	padding: 12px 10px;
-	border: 2px solid var(--color-border);
-	border-radius: var(--border-radius-large, 12px);
+	border: 2px solid var(--color-border-dark);
+	border-radius: var(--border-radius-element);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 0.88rem;
@@ -510,6 +510,7 @@ function confettiStyle(i: number) {
 	transition: all 0.15s ease;
 	text-align: center;
 	line-height: 1.3;
+	margin: 0;
 }
 
 .choice-btn:hover:not(.disabled) {
@@ -518,15 +519,15 @@ function confettiStyle(i: number) {
 }
 
 .choice-btn.correct {
-	background: rgba(70, 186, 97, 0.12);
-	border-color: var(--color-success, #46ba61);
-	color: var(--color-success, #2ecc71);
+	background: var(--color-success);
+	border-color: var(--color-element-success);
+	color: var(--color-text-success);
 }
 
 .choice-btn.wrong {
-	background: rgba(233, 50, 45, 0.08);
-	border-color: var(--color-error, #e9322d);
-	color: var(--color-error, #e9322d);
+	background: var(--color-error);
+	border-color: var(--color-element-error);
+	color: var(--color-text-error);
 }
 
 .choice-btn.disabled { cursor: default; }
@@ -556,8 +557,8 @@ function confettiStyle(i: number) {
 .name-input {
 	flex: 1;
 	padding: 10px 14px;
-	border: 2px solid var(--color-border);
-	border-radius: var(--border-radius-large, 12px);
+	border: 2px solid var(--color-border-dark);
+	border-radius: var(--border-radius-element);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 1rem;
@@ -567,7 +568,7 @@ function confettiStyle(i: number) {
 }
 
 .name-input::placeholder {
-	color: var(--color-placeholder-text, var(--color-text-lighter, #bbb));
+	color: var(--color-placeholder-dark);
 }
 
 .name-input:focus {
@@ -579,27 +580,28 @@ function confettiStyle(i: number) {
 }
 
 .btn-submit {
+	margin: 0;
 	padding: 10px 18px;
 	border: none;
-	border-radius: var(--border-radius-large, 12px);
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	border-radius: var(--border-radius-element);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	font-size: 1.1rem;
 	font-weight: 700;
 	cursor: pointer;
-	transition: opacity 0.15s ease;
+	transition: background 0.15s ease;
 	flex-shrink: 0;
 }
 
-.btn-submit:hover:not(:disabled) { opacity: 0.88; }
+.btn-submit:hover:not(:disabled) { background: var(--color-primary-element-hover); }
 
 .btn-submit:disabled { opacity: 0.4; cursor: default; }
 
 /* ── Hint ────────────────────────────────────────*/
 .hint-bubble {
-	background: var(--color-background-dark, rgba(0, 0, 0, 0.05));
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large, 12px);
+	background: var(--color-background-dark);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-container);
 	padding: 10px 14px;
 	color: var(--color-main-text);
 	font-size: 0.85rem;
@@ -607,14 +609,15 @@ function confettiStyle(i: number) {
 }
 
 .btn-hint {
+	margin: 0;
 	padding: 6px 14px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius, 8px);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-element);
 	background: transparent;
-	color: var(--color-text-lighter, #888);
+	color: var(--color-text-maxcontrast);
 	font-size: 0.78rem;
 	cursor: pointer;
-	transition: all 0.15s ease;
+	transition: background 0.15s ease, color 0.15s ease;
 	align-self: flex-start;
 	flex-shrink: 0;
 }
@@ -639,21 +642,21 @@ function confettiStyle(i: number) {
 	align-items: center;
 	gap: 10px;
 	padding: 12px 16px;
-	border-radius: var(--border-radius-large, 12px);
+	border-radius: var(--border-radius-element);
 	font-size: 0.95rem;
 	font-weight: 600;
 }
 
 .result-correct {
-	background: rgba(70, 186, 97, 0.1);
-	border: 1px solid var(--color-success, #46ba61);
-	color: var(--color-success, #2ecc71);
+	background: var(--color-success);
+	border: 1px solid var(--color-element-success);
+	color: var(--color-text-success);
 }
 
 .result-wrong {
-	background: rgba(233, 50, 45, 0.08);
-	border: 1px solid var(--color-error, #e9322d);
-	color: var(--color-error, #e9322d);
+	background: var(--color-error);
+	border: 1px solid var(--color-element-error);
+	color: var(--color-text-error);
 }
 
 .feedback-icon {
@@ -661,26 +664,27 @@ function confettiStyle(i: number) {
 	flex-shrink: 0;
 }
 
-/* Primary action button — full width, NC-styled */
+/* Primary action button — full width */
 .btn-action {
+	margin: 0;
 	width: 100%;
-	min-height: 48px;
+	min-height: var(--clickable-area-large);
 	padding: 12px 24px;
 	border: none;
-	border-radius: var(--border-radius-pill, var(--border-radius-large, 24px));
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	border-radius: var(--border-radius-pill);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	font-size: 1.05rem;
 	font-weight: 700;
 	cursor: pointer;
-	transition: opacity 0.15s ease;
+	transition: background 0.15s ease;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	box-sizing: border-box;
 }
 
-.btn-action:hover:not(:disabled) { opacity: 0.9; }
+.btn-action:hover:not(:disabled) { background: var(--color-primary-element-hover); }
 
 .btn-action:disabled { opacity: 0.45; cursor: default; }
 
@@ -718,9 +722,9 @@ function confettiStyle(i: number) {
 	align-items: center;
 	gap: 10px;
 	padding: 24px 16px;
-	background: var(--color-background-dark, rgba(0,0,0,0.04));
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large, 16px);
+	background: var(--color-background-dark);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-container-large);
 	width: 100%;
 	box-sizing: border-box;
 	text-align: center;
@@ -730,8 +734,8 @@ function confettiStyle(i: number) {
 	width: 64px;
 	height: 64px;
 	border-radius: 50%;
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -751,13 +755,13 @@ function confettiStyle(i: number) {
 .name-badge-title {
 	margin: 0;
 	font-size: 0.85rem;
-	color: var(--color-text-lighter, #888);
+	color: var(--color-text-maxcontrast);
 }
 
 .name-badge-dept {
 	margin: 0;
 	font-size: 0.78rem;
-	color: var(--color-text-lighter, #bbb);
+	color: var(--color-text-maxcontrast);
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
 }
@@ -777,14 +781,15 @@ function confettiStyle(i: number) {
 
 .face-option {
 	position: relative;
-	border: 3px solid var(--color-border);
-	border-radius: var(--border-radius-large, 12px);
+	border: 3px solid var(--color-border-dark);
+	border-radius: var(--border-radius-container);
 	overflow: hidden;
-	background: var(--color-background-dark, rgba(0,0,0,0.04));
+	background: var(--color-background-dark);
 	cursor: pointer;
 	padding: 0;
 	aspect-ratio: 1;
 	transition: border-color 0.15s ease, transform 0.12s ease;
+	margin: 0;
 }
 
 .face-option:hover:not(.disabled) {
@@ -793,13 +798,13 @@ function confettiStyle(i: number) {
 }
 
 .face-option.correct {
-	border-color: var(--color-success, #46ba61);
-	box-shadow: 0 0 0 3px rgba(70, 186, 97, 0.25);
+	border-color: var(--color-element-success);
+	box-shadow: 0 0 0 3px var(--color-success);
 }
 
 .face-option.wrong {
-	border-color: var(--color-error, #e9322d);
-	box-shadow: 0 0 0 3px rgba(233, 50, 45, 0.2);
+	border-color: var(--color-element-error);
+	box-shadow: 0 0 0 3px var(--color-error);
 }
 
 .face-option.disabled { cursor: default; }
@@ -815,7 +820,7 @@ function confettiStyle(i: number) {
 	position: absolute;
 	bottom: 0;
 	inset-inline: 0;
-	background: rgba(70, 186, 97, 0.9);
+	background: var(--color-element-success);
 	color: #fff;
 	font-size: 0.72rem;
 	font-weight: 700;
@@ -834,7 +839,7 @@ function confettiStyle(i: number) {
 	transform: translate(-50%, -50%);
 	font-size: 2rem;
 	font-weight: 800;
-	color: var(--color-primary-element, #0082c9);
+	color: var(--color-primary-element);
 	pointer-events: none;
 	z-index: 100;
 }
@@ -846,7 +851,7 @@ function confettiStyle(i: number) {
 	transform: translateX(-50%);
 	font-size: 1.5rem;
 	font-weight: 800;
-	color: var(--color-error, #e74c3c);
+	color: var(--color-element-warning);
 	pointer-events: none;
 	z-index: 100;
 	animation: streakBounce 2s ease-out forwards;

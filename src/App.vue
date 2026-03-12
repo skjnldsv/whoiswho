@@ -142,7 +142,7 @@ watch(lives, (val) => {
 :root {
 	--whw-card-bg: var(--color-main-background);
 	--whw-card-text: var(--color-main-text);
-	--whw-card-title: var(--color-text-lighter, var(--color-sub-text, #888));
+	--whw-card-title: var(--color-text-maxcontrast);
 }
 
 /* ── Root container ── */

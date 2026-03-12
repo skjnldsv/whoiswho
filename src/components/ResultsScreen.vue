@@ -101,10 +101,10 @@ const accuracy = computed(() => {
 
 .results-card {
 	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large, 16px);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-container-large);
 	padding: 32px 28px;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+	box-shadow: 0 4px 20px var(--color-box-shadow);
 	text-align: center;
 }
 
@@ -131,21 +131,21 @@ const accuracy = computed(() => {
 .big-value {
 	font-size: 2rem;
 	font-weight: 800;
-	color: var(--color-primary-element, #0082c9);
+	color: var(--color-primary-element);
 	line-height: 1;
 }
 
 .big-label {
 	font-size: 0.75rem;
-	color: var(--color-text-lighter, #888);
+	color: var(--color-text-maxcontrast);
 	font-weight: 600;
 	text-transform: uppercase;
 	margin-top: 4px;
 }
 
 .detail-stats {
-	background: var(--color-background-dark, rgba(0,0,0,0.04));
-	border-radius: var(--border-radius-large, 12px);
+	background: var(--color-background-dark);
+	border-radius: var(--border-radius-container);
 	padding: 16px;
 	margin-bottom: 24px;
 }
@@ -186,9 +186,9 @@ const accuracy = computed(() => {
 
 .mastered-badge {
 	padding: 4px 12px;
-	border-radius: var(--border-radius-pill, 16px);
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	border-radius: var(--border-radius-pill);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	font-size: 0.8rem;
 	font-weight: 600;
 }
@@ -201,53 +201,56 @@ const accuracy = computed(() => {
 }
 
 .btn-primary {
+	margin: 0;
 	padding: 12px 32px;
-	border-radius: 50px;
+	border-radius: var(--border-radius-pill);
 	border: none;
-	background: linear-gradient(135deg, var(--color-primary-element, #0082c9), color-mix(in srgb, var(--color-primary-element, #0082c9) 70%, #000));
-	color: var(--color-primary-element-text, #fff);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	font-size: 1rem;
 	font-weight: 700;
 	cursor: pointer;
-	transition: all 0.15s ease;
-	box-shadow: 0 4px 14px rgba(0, 130, 201, 0.35);
+	transition: background 0.15s ease;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary:hover {
-	transform: translateY(-1px);
-	box-shadow: 0 6px 20px rgba(0, 130, 201, 0.45);
+	background: var(--color-primary-element-hover);
 }
 
 .btn-secondary {
+	margin: 0;
 	padding: 10px 24px;
-	border-radius: 50px;
-	border: 2px solid var(--color-primary-element, #0082c9);
+	border-radius: var(--border-radius-pill);
+	border: 2px solid var(--color-primary-element);
 	background: transparent;
-	color: var(--color-primary-element, #0082c9);
+	color: var(--color-primary-element);
 	font-size: 0.92rem;
 	font-weight: 600;
 	cursor: pointer;
-	transition: all 0.15s ease;
+	transition: background 0.15s ease, color 0.15s ease;
 }
 
 .btn-secondary:hover {
-	background: rgba(0, 130, 201, 0.08);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
 }
 
 .btn-tertiary {
+	margin: 0;
 	padding: 8px 16px;
-	border-radius: 50px;
-	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-pill);
+	border: 1px solid var(--color-border-dark);
 	background: transparent;
-	color: var(--color-text-lighter, #888);
+	color: var(--color-text-maxcontrast);
 	font-size: 0.88rem;
 	font-weight: 600;
 	cursor: pointer;
-	transition: all 0.15s ease;
+	transition: background 0.15s ease, color 0.15s ease;
 }
 
 .btn-tertiary:hover {
-	background: var(--color-background-hover);
+	background: var(--color-background-dark);
 	color: var(--color-main-text);
 }
 
