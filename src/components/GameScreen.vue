@@ -6,19 +6,19 @@
 	<div class="game-screen">
 		<!-- ── Header: progress bar ── -->
 		<div class="game-header">
-			<ProgressBar :level="progress.level"
+			<ProgressBar
+				:level="progress.level"
 				:xp="progress.xp"
 				:progress="levelProgress"
 				:streak="sessionStats.streak"
 				:mastered="masteredCount"
 				:total="totalCount"
 				:lives="lives"
-				:max-lives="maxLives" />
+				:maxLives="maxLives" />
 		</div>
 
 		<!-- ── Two-column body ── -->
 		<div v-if="currentChallenge" class="game-body">
-
 			<!-- LEFT: photo card (animates per challenge) -->
 			<div class="card-column">
 				<Transition name="card-fade" mode="out-in">
@@ -28,14 +28,23 @@
 						</span>
 						<!-- pick-face: show name as the clue, not a photo -->
 						<div v-if="currentChallenge.type === 'pick-face'" class="name-badge">
-							<div class="name-badge-avatar">{{ currentChallenge.person.name.charAt(0) }}</div>
-							<h2 class="name-badge-name">{{ currentChallenge.person.name }}</h2>
-							<p class="name-badge-title">{{ currentChallenge.person.title }}</p>
-							<p class="name-badge-dept">{{ currentChallenge.person.department }}</p>
+							<div class="name-badge-avatar">
+								{{ currentChallenge.person.name.charAt(0) }}
+							</div>
+							<h2 class="name-badge-name">
+								{{ currentChallenge.person.name }}
+							</h2>
+							<p class="name-badge-title">
+								{{ currentChallenge.person.title }}
+							</p>
+							<p class="name-badge-dept">
+								{{ currentChallenge.person.department }}
+							</p>
 						</div>
-						<PersonCard v-else
+						<PersonCard
+							v-else
 							:person="currentChallenge.person"
-							:show-name="currentChallenge.type === 'meet'"
+							:showName="currentChallenge.type === 'meet'"
 							:flipped="showingResult && currentChallenge.type !== 'meet'"
 							:correct="showingResult && lastAnswerCorrect"
 							:wrong="showingResult && !lastAnswerCorrect" />
@@ -50,15 +59,22 @@
 					<div :key="currentChallenge.seq" class="input-area" :class="{ 'pick-face': currentChallenge.type === 'pick-face' }">
 						<!-- Meet: see and remember -->
 						<div v-if="currentChallenge.type === 'meet'" class="meet-area">
-							<p class="prompt">Remember this person!</p>
-							<p class="sub-prompt">Name, title, and department — then click Got it.</p>
+							<p class="prompt">
+								Remember this person!
+							</p>
+							<p class="sub-prompt">
+								Name, title, and department — then click Got it.
+							</p>
 						</div>
 
 						<!-- Recognize: multiple choice -->
 						<div v-else-if="currentChallenge.type === 'recognize'" class="choice-area">
-							<p class="prompt">Who is this person?</p>
+							<p class="prompt">
+								Who is this person?
+							</p>
 							<div class="choice-grid">
-								<button v-for="option in currentChallenge.options"
+								<button
+									v-for="option in currentChallenge.options"
 									:key="option"
 									class="choice-btn"
 									:class="{
@@ -76,9 +92,12 @@
 
 						<!-- Pick-face: choose the photo that matches the name -->
 						<div v-else-if="currentChallenge.type === 'pick-face'" class="pick-face-area">
-							<p class="prompt">Find this person's face:</p>
+							<p class="prompt">
+								Find this person's face:
+							</p>
 							<div class="face-grid">
-								<button v-for="member in currentChallenge.photoOptions"
+								<button
+									v-for="member in currentChallenge.photoOptions"
 									:key="member.id"
 									class="face-option"
 									:class="{
@@ -89,7 +108,7 @@
 									}"
 									:disabled="showingResult || (!showingResult && eliminatedOptions.includes(member.name))"
 									@click="handleChoice(member.name)">
-									<img :src="member.photo" :alt="showingResult ? member.name : ''" class="face-option-img" />
+									<img :src="member.photo" :alt="showingResult ? member.name : ''" class="face-option-img">
 									<span v-if="showingResult && member.name === currentChallenge.correctAnswer" class="face-correct-label">✓ {{ member.name }}</span>
 								</button>
 							</div>
@@ -97,10 +116,15 @@
 
 						<!-- Recall: fill in blanks -->
 						<div v-else-if="currentChallenge.type === 'recall'" class="recall-area">
-							<p class="prompt">Complete the name:</p>
-							<p class="masked-name">{{ revealedMask || currentChallenge.maskedName }}</p>
+							<p class="prompt">
+								Complete the name:
+							</p>
+							<p class="masked-name">
+								{{ revealedMask || currentChallenge.maskedName }}
+							</p>
 							<div class="type-input-row">
-								<input ref="recallInput"
+								<input
+									ref="recallInput"
 									v-model="typedAnswer"
 									type="text"
 									class="name-input"
@@ -108,7 +132,8 @@
 									:disabled="showingResult"
 									autocomplete="off"
 									@keydown.enter="handleTypedAnswer">
-								<button class="btn-submit"
+								<button
+									class="btn-submit"
 									:disabled="showingResult || !typedAnswer.trim()"
 									:aria-label="t('whoiswho', 'Submit answer')"
 									@click="handleTypedAnswer">
@@ -119,12 +144,15 @@
 
 						<!-- Type: free recall -->
 						<div v-else-if="currentChallenge.type === 'type'" class="type-area">
-							<p class="prompt">Type this person's full name:</p>
+							<p class="prompt">
+								Type this person's full name:
+							</p>
 							<div v-if="revealedMask" class="hint-bubble hint-bubble--inline">
 								🔤 {{ revealedMask }}
 							</div>
 							<div class="type-input-row">
-								<input ref="typeInput"
+								<input
+									ref="typeInput"
 									v-model="typedAnswer"
 									type="text"
 									class="name-input"
@@ -132,7 +160,8 @@
 									:disabled="showingResult"
 									autocomplete="off"
 									@keydown.enter="handleTypedAnswer">
-								<button class="btn-submit"
+								<button
+									class="btn-submit"
 									:disabled="showingResult || !typedAnswer.trim()"
 									:aria-label="t('whoiswho', 'Submit answer')"
 									@click="handleTypedAnswer">
@@ -148,7 +177,8 @@
 					💡 {{ hintText }}
 				</div>
 				<div v-if="!showingResult && currentChallenge.type !== 'meet'" class="hint-skip-row">
-					<button v-if="hintLevel < 2"
+					<button
+						v-if="hintLevel < 2"
 						class="btn-hint"
 						:disabled="progress.xp < (hintLevel === 0 ? 10 : 15)"
 						:title="hintLevel === 0
@@ -168,7 +198,8 @@
 				<!-- ── Action bar: result + button ── -->
 				<div class="action-area">
 					<Transition name="fade">
-						<div v-if="showingResult && currentChallenge.type !== 'meet'"
+						<div
+							v-if="showingResult && currentChallenge.type !== 'meet'"
 							class="result-msg"
 							:class="{
 								'result-correct': lastAnswerCorrect,
@@ -181,13 +212,15 @@
 							<span v-else>It's <strong>{{ currentChallenge.correctAnswer }}</strong></span>
 						</div>
 					</Transition>
-					<button v-if="currentChallenge.type === 'meet' && !showingResult"
+					<button
+						v-if="currentChallenge.type === 'meet' && !showingResult"
 						class="btn-action"
 						:disabled="answered"
 						@click="handleMeet">
 						Got it <kbd>↵</kbd>
 					</button>
-					<button v-else-if="showingResult && currentChallenge.type !== 'meet'"
+					<button
+						v-else-if="showingResult && currentChallenge.type !== 'meet'"
 						class="btn-action"
 						:class="{ 'btn-action--auto-advancing': autoAdvancing }"
 						:style="autoAdvancing ? { '--auto-progress-duration': AUTO_SKIP_DELAY_MS + 'ms' } : {}"
@@ -214,18 +247,23 @@
 
 		<!-- Confetti -->
 		<div v-if="showConfetti" class="confetti-container">
-			<div v-for="i in 30" :key="i" class="confetti-piece" :style="confettiStyle(i)" />
+			<div
+				v-for="i in 30"
+				:key="i"
+				class="confetti-piece"
+				:style="confettiStyle(i)" />
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, useTemplateRef } from 'vue'
+import type { Challenge } from '../composables/useGameEngine.ts'
+import type { SessionStats } from '../composables/useGameEngine.ts'
+import type { GameProgress } from '../composables/useStorage.ts'
+
 import { t } from '@nextcloud/l10n'
 import { useHotKey } from '@nextcloud/vue'
-import type { Challenge } from '../composables/useGameEngine'
-import type { GameProgress } from '../composables/useStorage'
-import type { SessionStats } from '../composables/useGameEngine'
+import { nextTick, ref, useTemplateRef, watch } from 'vue'
 import PersonCard from './PersonCard.vue'
 import ProgressBar from './ProgressBar.vue'
 
@@ -282,17 +320,24 @@ let autoSkipTimeoutId: ReturnType<typeof setTimeout> | null = null
 const AUTO_SKIP_DELAY_MS = 3000 // ms before auto-advancing to next challenge
 
 // Strip diacritics for accent-agnostic comparison
+/**
+ *
+ * @param s The text string to normalize
+ */
 function normalizeText(s: string): string {
 	return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
 // Local Levenshtein — mirrors the game engine so XP popup is shown immediately
+/**
+ *
+ * @param a The first string
+ * @param b The second string
+ */
 function levenshtein(a: string, b: string): number {
 	const m = a.length
 	const n = b.length
-	const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
-		Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
-	)
+	const dp: number[][] = Array.from({ length: m + 1 }, (_, i) => Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)))
 	for (let i = 1; i <= m; i++) {
 		for (let j = 1; j <= n; j++) {
 			dp[i][j] = a[i - 1] === b[j - 1]
@@ -313,8 +358,14 @@ const XP_PER_STAGE: Record<string, number> = {
 	type: 40,
 }
 
+/**
+ *
+ */
 function clearAutoSkipTimers() {
-	if (autoSkipTimeoutId !== null) { clearTimeout(autoSkipTimeoutId); autoSkipTimeoutId = null }
+	if (autoSkipTimeoutId !== null) {
+		clearTimeout(autoSkipTimeoutId)
+		autoSkipTimeoutId = null
+	}
 	autoAdvancing.value = false
 }
 
@@ -335,7 +386,9 @@ watch(() => props.currentChallenge, async () => {
 watch(() => props.sessionStats.streak, (streak) => {
 	if (streak > 0 && streak % 5 === 0) {
 		streakMilestone.value = streak
-		setTimeout(() => { streakMilestone.value = 0 }, 2000)
+		setTimeout(() => {
+			streakMilestone.value = 0
+		}, 2000)
 	}
 })
 
@@ -343,18 +396,31 @@ watch(() => props.sessionStats.streak, (streak) => {
 watch(() => props.sessionStats.newlyMastered, (list) => {
 	if (list.length > 0) {
 		showConfetti.value = true
-		setTimeout(() => { showConfetti.value = false }, 3000)
+		setTimeout(() => {
+			showConfetti.value = false
+		}, 3000)
 	}
 }, { deep: true })
 
+/**
+ *
+ */
 function handleMeet() {
-	if (answered.value) return
+	if (answered.value) {
+		return
+	}
 	answered.value = true
 	emit('answer', 'ok')
 }
 
+/**
+ *
+ * @param option The selected option text
+ */
 function handleChoice(option: string) {
-	if (answered.value) return
+	if (answered.value) {
+		return
+	}
 	answered.value = true
 	chosenAnswer.value = option
 	emit('answer', option)
@@ -365,8 +431,13 @@ function handleChoice(option: string) {
 	}
 }
 
+/**
+ *
+ */
 function handleTypedAnswer() {
-	if (!typedAnswer.value.trim() || answered.value) return
+	if (!typedAnswer.value.trim() || answered.value) {
+		return
+	}
 	answered.value = true
 	emit('answer', typedAnswer.value)
 
@@ -383,8 +454,13 @@ function handleTypedAnswer() {
 	}
 }
 
+/**
+ *
+ */
 function handleNext() {
-	if (advancing.value) return
+	if (advancing.value) {
+		return
+	}
 	advancing.value = true
 	clearAutoSkipTimers()
 	if (props.gameOver) {
@@ -394,12 +470,20 @@ function handleNext() {
 	}
 }
 
+/**
+ *
+ */
 function handleSkip() {
-	if (answered.value || props.showingResult) return
+	if (answered.value || props.showingResult) {
+		return
+	}
 	answered.value = true
 	emit('skip')
 }
 
+/**
+ *
+ */
 function requestHint() {
 	emit('hint')
 }
@@ -410,7 +494,9 @@ watch(() => props.showingResult, (showing) => {
 		xpEarned.value = XP_PER_STAGE.meet
 		triggerXpPopup(xpEarned.value)
 		setTimeout(() => {
-			if (advancing.value) return
+			if (advancing.value) {
+				return
+			}
 			advancing.value = true
 			if (props.gameOver) {
 				emit('end')
@@ -421,18 +507,30 @@ watch(() => props.showingResult, (showing) => {
 	} else if (showing && props.currentChallenge?.type !== 'meet') {
 		// Auto-skip: fill Next button with a gradient over AUTO_SKIP_DELAY_MS
 		autoAdvancing.value = true
-		autoSkipTimeoutId = setTimeout(() => { handleNext() }, AUTO_SKIP_DELAY_MS)
+		autoSkipTimeoutId = setTimeout(() => {
+			handleNext()
+		}, AUTO_SKIP_DELAY_MS)
 	} else if (!showing) {
 		clearAutoSkipTimers()
 	}
 })
 
+/**
+ *
+ * @param amount The XP amount to display
+ */
 function triggerXpPopup(amount: number) {
 	xpPopup.value = amount
 	xpPopupKey.value++
-	setTimeout(() => { xpPopup.value = 0 }, 1500)
+	setTimeout(() => {
+		xpPopup.value = 0
+	}, 1500)
 }
 
+/**
+ *
+ * @param i The confetti piece index
+ */
 function confettiStyle(i: number) {
 	const colors = ['#f7971e', '#ffd200', '#0082c9', '#764ba2', '#2ecc71', '#e74c3c', '#3498db']
 	return {
@@ -471,15 +569,21 @@ useHotKey('h', () => {
 
 // 1-4 → select choice / face (recognize / pick-face)
 useHotKey(['1', '2', '3', '4'], (e) => {
-	if (props.showingResult || answered.value) return
+	if (props.showingResult || answered.value) {
+		return
+	}
 	const idx = parseInt(e.key) - 1
 	const type = props.currentChallenge?.type
 	if (type === 'recognize' && props.currentChallenge?.options) {
-		const visible = props.currentChallenge.options.filter(o => !props.eliminatedOptions.includes(o))
-		if (visible[idx] !== undefined) handleChoice(visible[idx])
+		const visible = props.currentChallenge.options.filter((o) => !props.eliminatedOptions.includes(o))
+		if (visible[idx] !== undefined) {
+			handleChoice(visible[idx])
+		}
 	} else if (type === 'pick-face' && props.currentChallenge?.photoOptions) {
-		const visible = props.currentChallenge.photoOptions.filter(m => !props.eliminatedOptions.includes(m.name))
-		if (visible[idx] !== undefined) handleChoice(visible[idx].name)
+		const visible = props.currentChallenge.photoOptions.filter((m) => !props.eliminatedOptions.includes(m.name))
+		if (visible[idx] !== undefined) {
+			handleChoice(visible[idx].name)
+		}
 	}
 })
 </script>

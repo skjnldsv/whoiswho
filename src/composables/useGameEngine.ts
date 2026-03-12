@@ -3,16 +3,17 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { ref, computed } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { computed, ref } from 'vue'
 import {
-	loadProgress,
-	saveProgress,
-	getPersonProgress,
 	type GameProgress,
 	type PersonProgress,
-} from './useStorage'
+
+	getPersonProgress,
+	loadProgress,
+	saveProgress,
+} from './useStorage.ts'
 
 export interface TeamMember {
 	id: number
@@ -81,12 +82,15 @@ const REVEAL_FRACTION = 1 / 3 // fraction of hidden letters to reveal
 let challengeSeq = 0
 
 // Levenshtein distance for close-answer detection
+/**
+ *
+ * @param a The first string
+ * @param b The second string
+ */
 function levenshtein(a: string, b: string): number {
 	const m = a.length
 	const n = b.length
-	const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
-		Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
-	)
+	const dp: number[][] = Array.from({ length: m + 1 }, (_, i) => Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)))
 	for (let i = 1; i <= m; i++) {
 		for (let j = 1; j <= n; j++) {
 			dp[i][j] = a[i - 1] === b[j - 1]
@@ -97,6 +101,9 @@ function levenshtein(a: string, b: string): number {
 	return dp[m][n]
 }
 
+/**
+ *
+ */
 export function useGameEngine() {
 	const progress = ref<GameProgress>(loadProgress())
 	const currentChallenge = ref<Challenge | null>(null)
@@ -128,12 +135,10 @@ export function useGameEngine() {
 		.catch(() => { loadError.value = true })
 		.finally(() => { loading.value = false })
 
-	const allMembers = computed(() =>
-		allMembersRaw.value.filter(m => m.photo && m.name && m.photo !== PLACEHOLDER_PHOTO),
-	)
+	const allMembers = computed(() => allMembersRaw.value.filter((m) => m.photo && m.name && m.photo !== PLACEHOLDER_PHOTO))
 
 	const masteredCount = computed(() => {
-		return allMembers.value.filter(m => {
+		return allMembers.value.filter((m) => {
 			const p = progress.value.people[m.id]
 			return p && p.stage >= 4
 		}).length
@@ -146,6 +151,9 @@ export function useGameEngine() {
 		return Math.min((progress.value.xp % xpForLevel) / xpForLevel, 1)
 	})
 
+	/**
+	 *
+	 */
 	function startSession() {
 		sessionStats.value = {
 			answered: 0,
@@ -164,15 +172,20 @@ export function useGameEngine() {
 		nextChallenge()
 	}
 
+	/**
+	 *
+	 */
 	function pickNextPerson(): TeamMember | null {
 		const now = Date.now()
 		const members = allMembers.value
 
-		if (members.length === 0) return null
+		if (members.length === 0) {
+			return null
+		}
 
 		const unseen: TeamMember[] = []
-		const dueForReview: { member: TeamMember; priority: number }[] = []
-		const active: { member: TeamMember; pp: PersonProgress }[] = []
+		const dueForReview: { member: TeamMember, priority: number }[] = []
+		const active: { member: TeamMember, pp: PersonProgress }[] = []
 
 		for (const m of members) {
 			const pp = progress.value.people[m.id]
@@ -188,24 +201,28 @@ export function useGameEngine() {
 		}
 
 		// Helper: prefer members that aren't the last-shown person
+		/**
+		 *
+		 * @param arr The array of team members to filter
+		 */
 		function preferNotLast(arr: TeamMember[]): TeamMember[] {
-			const filtered = arr.filter(m => m.id !== lastPersonId.value)
+			const filtered = arr.filter((m) => m.id !== lastPersonId.value)
 			return filtered.length > 0 ? filtered : arr
 		}
 
 		const overdue = active
-			.filter(a => now >= a.pp.nextReview)
+			.filter((a) => now >= a.pp.nextReview)
 			.sort((a, b) => a.pp.nextReview - b.pp.nextReview)
 
-		let result: TeamMember | null = null
+		let result: TeamMember | null
 
 		if (overdue.length > 0) {
-			const withErrors = overdue.filter(a => a.pp.totalWrong > a.pp.totalCorrect)
+			const withErrors = overdue.filter((a) => a.pp.totalWrong > a.pp.totalCorrect)
 			if (withErrors.length > 0) {
-				const pool = preferNotLast(withErrors.map(a => a.member))
+				const pool = preferNotLast(withErrors.map((a) => a.member))
 				result = pool[Math.floor(Math.random() * pool.length)]
 			} else {
-				const pool = preferNotLast(overdue.map(a => a.member))
+				const pool = preferNotLast(overdue.map((a) => a.member))
 				result = pool[0]
 			}
 		} else if (active.length < ACTIVE_POOL_SIZE && unseen.length > 0) {
@@ -213,52 +230,74 @@ export function useGameEngine() {
 			result = pool[Math.floor(Math.random() * pool.length)]
 		} else if (active.length > 0) {
 			active.sort((a, b) => a.pp.nextReview - b.pp.nextReview)
-			const pool = preferNotLast(active.map(a => a.member))
+			const pool = preferNotLast(active.map((a) => a.member))
 			result = pool[0]
 		} else if (dueForReview.length > 0) {
 			dueForReview.sort((a, b) => b.priority - a.priority)
-			const pool = preferNotLast(dueForReview.map(a => a.member))
+			const pool = preferNotLast(dueForReview.map((a) => a.member))
 			result = pool[0]
 		} else if (unseen.length > 0) {
 			const pool = preferNotLast(unseen)
 			result = pool[Math.floor(Math.random() * pool.length)]
 		} else {
 			const allWithProgress = members
-				.map(m => ({ member: m, pp: progress.value.people[m.id] }))
-				.filter(a => a.pp)
+				.map((m) => ({ member: m, pp: progress.value.people[m.id] }))
+				.filter((a) => a.pp)
 				.sort((a, b) => a.pp.lastSeen - b.pp.lastSeen)
 
 			result = allWithProgress.length > 0 ? allWithProgress[0].member : members[0]
 		}
 
-		if (result) lastPersonId.value = result.id
+		if (result) {
+			lastPersonId.value = result.id
+		}
 		return result
 	}
 
+	/**
+	 *
+	 * @param name The person's full name
+	 */
 	function generateMaskedName(name: string): string {
 		const parts = name.split(' ')
 		return parts.map((part, i) => {
 			if (i === 0) {
 				return part[0] + part.slice(1).replace(/[a-zA-ZÀ-ÿ]/g, '_')
 			}
-			if (part.length <= 2) return part
+			if (part.length <= 2) {
+				return part
+			}
 			return part[0] + part.slice(1).replace(/[a-zA-ZÀ-ÿ]/g, '_')
 		}).join(' ')
 	}
 
+	/**
+	 *
+	 * @param correct The correct team member
+	 * @param count The number of options to generate
+	 */
 	function getRandomOptions(correct: TeamMember, count: number): string[] {
-		const others = allMembers.value.filter(m => m.id !== correct.id)
+		const others = allMembers.value.filter((m) => m.id !== correct.id)
 		const shuffled = others.sort(() => Math.random() - 0.5).slice(0, count - 1)
-		const options = [...shuffled.map(m => m.name), correct.name]
+		const options = [...shuffled.map((m) => m.name), correct.name]
 		return options.sort(() => Math.random() - 0.5)
 	}
 
+	/**
+	 *
+	 * @param correct The correct team member
+	 * @param count The number of options to generate
+	 */
 	function getRandomPhotoOptions(correct: TeamMember, count: number): TeamMember[] {
-		const others = allMembers.value.filter(m => m.id !== correct.id)
+		const others = allMembers.value.filter((m) => m.id !== correct.id)
 		const shuffled = others.sort(() => Math.random() - 0.5).slice(0, count - 1)
 		return [...shuffled, correct].sort(() => Math.random() - 0.5)
 	}
 
+	/**
+	 *
+	 * @param person The team member to build a challenge for
+	 */
 	function buildChallenge(person: TeamMember): Challenge {
 		const pp = getPersonProgress(progress.value, person.id)
 		let type: ChallengeType = STAGE_TO_TYPE[Math.min(pp.stage, 4)]
@@ -286,8 +325,13 @@ export function useGameEngine() {
 		return challenge
 	}
 
+	/**
+	 *
+	 */
 	function nextChallenge() {
-		if (gameOver.value) return
+		if (gameOver.value) {
+			return
+		}
 
 		const person = pickNextPerson()
 		if (!person) {
@@ -299,8 +343,14 @@ export function useGameEngine() {
 		currentChallenge.value = buildChallenge(person)
 	}
 
+	/**
+	 *
+	 * @param answer The player's answer string
+	 */
 	function submitAnswer(answer: string): boolean {
-		if (!currentChallenge.value) return false
+		if (!currentChallenge.value) {
+			return false
+		}
 
 		const challenge = currentChallenge.value
 		const pp = getPersonProgress(progress.value, challenge.person.id)
@@ -391,10 +441,17 @@ export function useGameEngine() {
 		return isCorrect
 	}
 
+	/**
+	 *
+	 */
 	function useHint(): string | null {
-		if (!currentChallenge.value) return null
+		if (!currentChallenge.value) {
+			return null
+		}
 		const cost = 10
-		if (progress.value.xp < cost) return null
+		if (progress.value.xp < cost) {
+			return null
+		}
 
 		progress.value.xp -= cost
 		sessionStats.value.xpEarned -= cost
@@ -409,7 +466,9 @@ export function useGameEngine() {
 	 * Used by the "I don't know" button.
 	 */
 	function skipAnswer() {
-		if (!currentChallenge.value || showingResult.value) return
+		if (!currentChallenge.value || showingResult.value) {
+			return
+		}
 		const challenge = currentChallenge.value
 		const pp = getPersonProgress(progress.value, challenge.person.id)
 		const now = Date.now()
@@ -437,9 +496,13 @@ export function useGameEngine() {
 	 * Returns a new masked string or null when not applicable.
 	 */
 	function revealMoreLetters(): string | null {
-		if (!currentChallenge.value) return null
+		if (!currentChallenge.value) {
+			return null
+		}
 		const type = currentChallenge.value.type
-		if (type !== 'recall' && type !== 'type') return null
+		if (type !== 'recall' && type !== 'type') {
+			return null
+		}
 
 		const name = currentChallenge.value.person.name
 		// For 'type' there is no maskedName yet — generate a fresh base mask
@@ -447,9 +510,13 @@ export function useGameEngine() {
 
 		const hiddenIndices: number[] = []
 		for (let i = 0; i < baseMask.length; i++) {
-			if (baseMask[i] === '_') hiddenIndices.push(i)
+			if (baseMask[i] === '_') {
+				hiddenIndices.push(i)
+			}
 		}
-		if (hiddenIndices.length === 0) return baseMask
+		if (hiddenIndices.length === 0) {
+			return baseMask
+		}
 
 		// Reveal ~⅓ of remaining hidden letters (minimum 2)
 		const revealCount = Math.max(REVEAL_MIN_COUNT, Math.ceil(hiddenIndices.length * REVEAL_FRACTION))
@@ -466,18 +533,24 @@ export function useGameEngine() {
 	 * option that should be eliminated, or null when not applicable.
 	 */
 	function eliminateWrongOption(): string | null {
-		if (!currentChallenge.value) return null
+		if (!currentChallenge.value) {
+			return null
+		}
 		const challenge = currentChallenge.value
 
 		if (challenge.type === 'recognize' && challenge.options) {
-			const wrong = challenge.options.filter(o => o !== challenge.correctAnswer)
-			if (wrong.length === 0) return null
+			const wrong = challenge.options.filter((o) => o !== challenge.correctAnswer)
+			if (wrong.length === 0) {
+				return null
+			}
 			return wrong[Math.floor(Math.random() * wrong.length)]
 		}
 
 		if (challenge.type === 'pick-face' && challenge.photoOptions) {
-			const wrong = challenge.photoOptions.filter(m => m.name !== challenge.correctAnswer)
-			if (wrong.length === 0) return null
+			const wrong = challenge.photoOptions.filter((m) => m.name !== challenge.correctAnswer)
+			if (wrong.length === 0) {
+				return null
+			}
 			return wrong[Math.floor(Math.random() * wrong.length)].name
 		}
 
@@ -488,11 +561,15 @@ export function useGameEngine() {
 	 * Perform the second hint (costs 15 XP).
 	 * Returns what was revealed so App.vue can store and display it.
 	 */
-	function useSecondHint(): { revealedMask: string | null; eliminatedOption: string | null } {
+	function useSecondHint(): { revealedMask: string | null, eliminatedOption: string | null } {
 		const empty = { revealedMask: null, eliminatedOption: null }
-		if (!currentChallenge.value) return empty
+		if (!currentChallenge.value) {
+			return empty
+		}
 		const cost = 15
-		if (progress.value.xp < cost) return empty
+		if (progress.value.xp < cost) {
+			return empty
+		}
 
 		progress.value.xp -= cost
 		sessionStats.value.xpEarned -= cost

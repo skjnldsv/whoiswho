@@ -6,62 +6,58 @@
 	<div id="whos-who-app">
 		<StartScreen
 			v-if="screen === 'start'"
-			:all-members="allMembers"
+			:allMembers="allMembers"
 			:progress="progress"
 			@start="startGame"
 			@reset="handleReset"
-			@leaderboard="screen = 'leaderboard'"
-		/>
+			@leaderboard="screen = 'leaderboard'" />
 		<GameScreen
 			v-else-if="screen === 'game'"
-			:current-challenge="currentChallenge"
-			:showing-result="showingResult"
-			:last-answer-correct="lastAnswerCorrect"
-			:last-answer-close="lastAnswerClose"
+			:currentChallenge="currentChallenge"
+			:showingResult="showingResult"
+			:lastAnswerCorrect="lastAnswerCorrect"
+			:lastAnswerClose="lastAnswerClose"
 			:progress="progress"
-			:session-stats="sessionStats"
+			:sessionStats="sessionStats"
 			:lives="lives"
-			:max-lives="maxLives"
-			:mastered-count="masteredCount"
-			:total-count="totalCount"
-			:level-progress="levelProgress"
-			:game-over="gameOver"
-			:hint-text="hintText"
-			:hint-level="hintLevel"
-			:eliminated-options="eliminatedOptions"
-			:revealed-mask="revealedMask"
+			:maxLives="maxLives"
+			:masteredCount="masteredCount"
+			:totalCount="totalCount"
+			:levelProgress="levelProgress"
+			:gameOver="gameOver"
+			:hintText="hintText"
+			:hintLevel="hintLevel"
+			:eliminatedOptions="eliminatedOptions"
+			:revealedMask="revealedMask"
 			@answer="handleAnswer"
 			@next="handleNext"
 			@skip="handleSkip"
 			@hint="handleHint"
-			@end="endGame"
-		/>
+			@end="endGame" />
 		<ResultsScreen
 			v-else-if="screen === 'results'"
 			:stats="sessionStats"
 			:level="progress.level"
 			:mastered="masteredCount"
 			:total="totalCount"
-			@play-again="startGame"
-			@go-home="screen = 'start'"
-			@leaderboard="screen = 'leaderboard'"
-		/>
+			@playAgain="startGame"
+			@goHome="screen = 'start'"
+			@leaderboard="screen = 'leaderboard'" />
 		<LeaderboardScreen
 			v-else-if="screen === 'leaderboard'"
-			@close="screen = 'start'"
-		/>
+			@close="screen = 'start'" />
 	</div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useGameEngine } from './composables/useGameEngine'
-import { useLeaderboard } from './composables/useLeaderboard'
-import { resetProgress as doResetProgress } from './composables/useStorage'
-import StartScreen from './components/StartScreen.vue'
 import GameScreen from './components/GameScreen.vue'
-import ResultsScreen from './components/ResultsScreen.vue'
 import LeaderboardScreen from './components/LeaderboardScreen.vue'
+import ResultsScreen from './components/ResultsScreen.vue'
+import StartScreen from './components/StartScreen.vue'
+import { useGameEngine } from './composables/useGameEngine.ts'
+import { useLeaderboard } from './composables/useLeaderboard.ts'
+import { resetProgress as doResetProgress } from './composables/useStorage.ts'
 
 const screen = ref<'start' | 'game' | 'results' | 'leaderboard'>('start')
 const hintText = ref<string | null>(null)
@@ -93,6 +89,9 @@ const {
 	useSecondHint,
 } = useGameEngine()
 
+/**
+ *
+ */
 function startGame() {
 	hintText.value = null
 	hintLevel.value = 0
@@ -102,16 +101,26 @@ function startGame() {
 	screen.value = 'game'
 }
 
+/**
+ *
+ * @param answer The player's answer string
+ */
 function handleAnswer(answer: string) {
 	submitAnswer(answer)
 	hintText.value = null
 }
 
+/**
+ *
+ */
 function handleSkip() {
 	skipAnswer()
 	hintText.value = null
 }
 
+/**
+ *
+ */
 function handleNext() {
 	nextChallenge()
 	hintText.value = null
@@ -123,6 +132,9 @@ function handleNext() {
 	}
 }
 
+/**
+ *
+ */
 function endGame() {
 	// Submit this session's XP to the leaderboard
 	const xp = sessionStats.value.xpEarned
@@ -136,6 +148,9 @@ function endGame() {
 	screen.value = 'results'
 }
 
+/**
+ *
+ */
 function handleHint() {
 	if (hintLevel.value === 0) {
 		const text = useHint()
@@ -157,6 +172,9 @@ function handleHint() {
 	}
 }
 
+/**
+ *
+ */
 function handleReset() {
 	doResetProgress()
 	progress.value = {
