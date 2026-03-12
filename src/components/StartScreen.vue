@@ -195,7 +195,7 @@ h1 {
 .resume-banner {
 	background: var(--color-primary-element-light);
 	border: 1px solid var(--color-border-dark);
-	border-radius: var(--border-radius-large);
+	border-radius: var(--border-radius-container);
 	padding: 10px 20px;
 	color: var(--color-primary-element-light-text);
 	font-size: 0.9rem;
@@ -261,7 +261,7 @@ h1 {
 .panel {
 	background: var(--color-background-dark);
 	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large);
+	border-radius: var(--border-radius-container);
 	padding: 18px;
 	overflow: hidden;
 	display: flex;
@@ -337,7 +337,8 @@ h1 {
 }
 
 .btn-link {
-	margin: 0;
+	margin: 0; /* override server.css margin: 3px */
+	min-height: unset; /* override server.css min-height: var(--default-clickable-area) for compact link */
 	background: none;
 	border: none;
 	color: var(--color-primary-element);
@@ -345,7 +346,7 @@ h1 {
 	font-weight: 600;
 	cursor: pointer;
 	padding: 2px 6px;
-	border-radius: var(--border-radius);
+	border-radius: var(--border-radius-small);
 	transition: background 0.12s;
 }
 
@@ -357,13 +358,14 @@ h1 {
 .lb-tabs {
 	display: flex;
 	margin-bottom: 10px;
-	border-radius: var(--border-radius-large);
+	border-radius: var(--border-radius-element);
 	overflow: hidden;
 	border: 1px solid var(--color-border);
 }
 
 .lb-tab {
-	margin: 0;
+	margin: 0; /* override server.css margin: 3px */
+	min-height: unset; /* override server.css min-height: var(--default-clickable-area) for compact tab */
 	flex: 1;
 	padding: 6px 10px;
 	border: none;
@@ -408,7 +410,7 @@ h1 {
 	align-items: center;
 	gap: 8px;
 	padding: 7px 10px;
-	border-radius: var(--border-radius-large);
+	border-radius: var(--border-radius-element);
 	background: var(--color-main-background);
 	border: 1px solid transparent;
 	font-size: 0.85rem;
