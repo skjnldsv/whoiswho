@@ -12,20 +12,38 @@ A Duolingo-style memory game to learn the names and faces of your Nextcloud team
 
 The game uses **spaced repetition** to help you memorise team members through four progressive stages:
 
-| Stage | Name | Description |
-|-------|------|-------------|
-| 1 | **Meet** | See a person's photo, name, and role |
-| 2 | **Recognize** | Pick the correct name from four options (or pick the right face) |
-| 3 | **Recall** | Fill in the missing letters of the name |
-| 4 | **Master** | Type the full name from memory |
+| Stage | Name | XP | Description |
+|-------|------|----|-------------|
+| 1 | **Meet** | 5 XP | See a person's photo, name, and role |
+| 2 | **Recognize** | 15 XP | Pick the correct name from four options (or pick the right face) |
+| 3 | **Recall** | 25 XP | Fill in the missing letters of the name |
+| 4 | **Master** | 40 XP | Type the full name from memory |
 
-Each correct answer earns XP. Wrong answers cost a life — you have **3 lives** per session. Members you struggle with appear more often.
+Wrong answers regress a person back one stage and show them again sooner. Members you struggle with appear more often.
+
+### XP, Streaks, and Lives
+
+**XP (experience points)**
+- Earned for every correct answer; the harder the stage, the more XP.
+- A *close* answer (edit distance of 1–2 characters, e.g. a typo) earns ¼ of the full XP and does not advance or regress the stage.
+- Hints cost XP: first hint (title & department) −10 XP; second hint (reveal letters or eliminate a wrong option) −15 XP.
+- Every 100 XP completes a level.
+
+**Streaks 🔥**
+- Your streak counts *consecutive correct* answers in the current session.
+- Any outright wrong answer, skip, or close answer resets the streak to zero.
+- Streaks are **session-only**: they start fresh at zero when you begin a new session and cannot be resumed.
+
+**Lives ❤️**
+- You start each session with **3 lives**.
+- Only outright wrong answers cost a life. Skipping ("I don't know") and close answers do **not** cost a life.
+- Lives **cannot be regained** once lost. The session ends when you run out of lives or when there are no more challenges due.
 
 ### Features
 
 - 🧠 Spaced repetition scheduling (30 s → 2 min → 10 min between reviews)
 - 🎯 Four challenge types including photo recognition
-- ❤️ Lives system with streak bonuses
+- ❤️ 3 lives per session (wrong answers only; close answers and skips are free)
 - 💡 Two-level hint system (costs XP)
 - 🏆 Weekly and all-time leaderboard
 - �� Session statistics and level-up progression

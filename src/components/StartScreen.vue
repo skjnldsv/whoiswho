@@ -53,35 +53,46 @@
 					<div class="stage-item">
 						<span class="stage-num">1</span>
 						<div>
-							<strong>Meet</strong>
+							<strong>Meet — 5 XP</strong>
 							<p>See each person's photo, name and role</p>
 						</div>
 					</div>
 					<div class="stage-item">
 						<span class="stage-num">2</span>
 						<div>
-							<strong>Recognize</strong>
-							<p>Pick the correct name from 4 options</p>
+							<strong>Recognize — 15 XP</strong>
+							<p>Pick the correct name from 4 options (or the right face)</p>
 						</div>
 					</div>
 					<div class="stage-item">
 						<span class="stage-num">3</span>
 						<div>
-							<strong>Recall</strong>
+							<strong>Recall — 25 XP</strong>
 							<p>Fill in the missing letters</p>
 						</div>
 					</div>
 					<div class="stage-item">
 						<span class="stage-num">4</span>
 						<div>
-							<strong>Master</strong>
+							<strong>Master — 40 XP</strong>
 							<p>Type the full name from memory</p>
 						</div>
 					</div>
 				</div>
-				<p class="tip">
-					💡 Wrong answers cost a life but show that person again sooner. You have 3 lives per session!
-				</p>
+				<div class="mechanics">
+					<div class="mechanic-item">
+						<span class="mechanic-icon">🔥</span>
+						<p><strong>Streaks</strong> count consecutive correct answers within a session. A wrong or close answer resets the streak to zero. Streaks don't carry over to the next session.</p>
+					</div>
+					<div class="mechanic-item">
+						<span class="mechanic-icon">❤️</span>
+						<p><strong>Lives</strong> — you have 3 per session. Only outright wrong answers cost a life; skipping and close answers (typos) do not. Hearts cannot be regained once lost.</p>
+					</div>
+					<div class="mechanic-item">
+						<span class="mechanic-icon">💡</span>
+						<p><strong>Hints</strong> cost XP: first hint −10 XP (shows title & department), second hint −15 XP (reveals letters or removes a wrong option). Close answers earn ¼ XP.</p>
+					</div>
+				</div>
 			</div>
 
 			<!-- Leaderboard widget -->
@@ -365,11 +376,34 @@ h1 {
 	color: var(--color-text-maxcontrast);
 }
 
-.tip {
-	text-align: center;
-	margin: 12px 0 0 0;
+.mechanics {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.mechanic-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.mechanic-icon {
+	font-size: 1rem;
+	line-height: 1.4;
+	flex-shrink: 0;
+}
+
+.mechanic-item p {
+	margin: 0;
 	font-size: 0.78rem;
 	color: var(--color-text-maxcontrast);
+	line-height: 1.4;
+}
+
+.mechanic-item strong {
+	color: var(--color-main-text);
 }
 
 /* ── Leaderboard widget ── */
