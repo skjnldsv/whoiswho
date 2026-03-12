@@ -14,20 +14,34 @@ use OCP\AppFramework\Http\Attribute\ApiRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
+use OCP\Cache\ICacheFactory;
 use OCP\Http\Client\IClientService;
+use OCP\ICache;
 use OCP\IRequest;
 
 class TeamController extends OCSController {
+	private const CACHE_KEY = 'team_members';
+	private const CACHE_TTL = 3600; // 1 hour
+
+	private ?ICache $cache;
+
 	public function __construct(
 		IRequest $request,
 		private IClientService $clientService,
+		ICacheFactory $cacheFactory,
 	) {
 		parent::__construct(Application::APP_ID, $request);
+		$this->cache = $cacheFactory->isAvailable() ? $cacheFactory->createDistributed(Application::APP_ID) : null;
 	}
 
 	#[NoAdminRequired]
 	#[ApiRoute(verb: 'GET', url: '/team')]
 	public function index(): DataResponse {
+		$cached = $this->cache?->get(self::CACHE_KEY);
+		if ($cached !== null) {
+			return new DataResponse($cached);
+		}
+
 		$client = $this->clientService->newClient();
 		try {
 			$response = $client->get('https://nextcloud.com/team/', [
@@ -40,6 +54,7 @@ class TeamController extends OCSController {
 		}
 
 		$members = $this->parseTeamPage($html);
+		$this->cache?->set(self::CACHE_KEY, $members, self::CACHE_TTL);
 		return new DataResponse($members);
 	}
 
