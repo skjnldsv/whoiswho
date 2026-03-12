@@ -72,6 +72,7 @@ import type { LeaderboardEntry } from '../composables/useLeaderboard.ts'
 
 import { computed, onMounted, ref } from 'vue'
 import { useLeaderboard } from '../composables/useLeaderboard.ts'
+import { rankLabel } from '../utils/strings.ts'
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -85,23 +86,6 @@ const myRank = computed(() => {
 	const idx = currentList.value.findIndex((e) => e.user_id === currentUser)
 	return idx >= 0 ? idx + 1 : 0
 })
-
-/**
- *
- * @param i The rank index (0-based)
- */
-function rankLabel(i: number): string {
-	if (i === 0) {
-		return '🥇'
-	}
-	if (i === 1) {
-		return '🥈'
-	}
-	if (i === 2) {
-		return '🥉'
-	}
-	return `#${i + 1}`
-}
 
 /**
  *

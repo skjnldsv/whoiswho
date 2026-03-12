@@ -119,6 +119,7 @@ import type { GameProgress } from '../composables/useStorage.ts'
 
 import { computed, onMounted, ref } from 'vue'
 import { useLeaderboard } from '../composables/useLeaderboard.ts'
+import { rankLabel } from '../utils/strings.ts'
 
 const props = defineProps<{
 	allMembers: TeamMember[]
@@ -142,23 +143,6 @@ const xp = computed(() => props.progress.xp)
 const { allTime, weekly, loading: lbLoading, error: lbError, currentUser, fetchScores } = useLeaderboard()
 const lbTab = ref<'weekly' | 'alltime'>('weekly')
 const currentList = computed(() => lbTab.value === 'weekly' ? weekly.value : allTime.value)
-
-/**
- *
- * @param i The rank index (0-based)
- */
-function rankLabel(i: number): string {
-	if (i === 0) {
-		return '🥇'
-	}
-	if (i === 1) {
-		return '🥈'
-	}
-	if (i === 2) {
-		return '🥉'
-	}
-	return `#${i + 1}`
-}
 
 onMounted(fetchScores)
 </script>
@@ -349,7 +333,7 @@ h1 {
 
 .lb-widget-header h3 {
 	margin: 0;
-	text-align: left;
+	text-align: start;
 }
 
 .btn-link {

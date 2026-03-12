@@ -4,8 +4,9 @@
  */
 
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
+import { generateOcsUrl } from '@nextcloud/router'
 import { computed, ref } from 'vue'
+import { levenshtein, normalizeText } from '../utils/strings.ts'
 import {
 	type GameProgress,
 	type PersonProgress,
@@ -55,7 +56,7 @@ const INTERVALS = [
 	600_000, // stage 4: mastered — 10min
 ]
 
-const XP_PER_STAGE: Record<ChallengeType, number> = {
+export const XP_PER_STAGE: Record<ChallengeType, number> = {
 	meet: 5,
 	recognize: 15,
 	'pick-face': 15,
@@ -72,7 +73,7 @@ const ACTIVE_POOL_SIZE = 6
 
 // Close-answer tuning
 const CLOSE_ANSWER_THRESHOLD = 2 // max Levenshtein distance to be "close"
-const CLOSE_ANSWER_XP_DIVISOR = 4 // close answers earn 1/4 of full XP
+export const CLOSE_ANSWER_XP_DIVISOR = 4 // close answers earn 1/4 of full XP
 
 // Second-hint reveal tuning
 const REVEAL_MIN_COUNT = 2 // minimum letters to reveal
@@ -81,24 +82,9 @@ const REVEAL_FRACTION = 1 / 3 // fraction of hidden letters to reveal
 // Monotonic counter — ensures Vue's Transition always sees a new key even when person+type stays the same
 let challengeSeq = 0
 
-// Levenshtein distance for close-answer detection
-/**
- *
- * @param a The first string
- * @param b The second string
- */
-function levenshtein(a: string, b: string): number {
-	const m = a.length
-	const n = b.length
-	const dp: number[][] = Array.from({ length: m + 1 }, (_, i) => Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)))
-	for (let i = 1; i <= m; i++) {
-		for (let j = 1; j <= n; j++) {
-			dp[i][j] = a[i - 1] === b[j - 1]
-				? dp[i - 1][j - 1]
-				: 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
-		}
-	}
-	return dp[m][n]
+// OCS response envelope
+interface OcsResponse<T> {
+	ocs: { data: T }
 }
 
 /**
@@ -130,8 +116,8 @@ export function useGameEngine() {
 	const loading = ref(true)
 	const loadError = ref(false)
 
-	axios.get<TeamMember[]>(generateUrl('/apps/whoiswho/team'))
-		.then(({ data }) => { allMembersRaw.value = data })
+	axios.get<OcsResponse<TeamMember[]>>(generateOcsUrl('apps/whoiswho/team'))
+		.then(({ data }) => { allMembersRaw.value = data.ocs.data })
 		.catch(() => { loadError.value = true })
 		.finally(() => { loading.value = false })
 
@@ -358,9 +344,8 @@ export function useGameEngine() {
 		const isMeet = challenge.type === 'meet'
 
 		// Strip diacritics so answers are accent-agnostic (e.g. "Jose" matches "José")
-		const strip = (s: string) => s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-		const normalizedAnswer = strip(answer)
-		const normalizedCorrect = strip(challenge.correctAnswer)
+		const normalizedAnswer = normalizeText(answer)
+		const normalizedCorrect = normalizeText(challenge.correctAnswer)
 		const isCorrect = isMeet || normalizedAnswer === normalizedCorrect
 		// A "close" answer has Levenshtein distance ≤ 2 (catches 1-2 char typos)
 		const isClose = !isCorrect && !isMeet && levenshtein(normalizedAnswer, normalizedCorrect) <= CLOSE_ANSWER_THRESHOLD
