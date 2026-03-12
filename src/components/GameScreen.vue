@@ -276,6 +276,7 @@ const advancing = ref(false)
 const autoSkipCountdown = ref(0)
 let autoSkipTimeoutId: ReturnType<typeof setTimeout> | null = null
 let autoSkipIntervalId: ReturnType<typeof setInterval> | null = null
+const AUTO_SKIP_DELAY_MS = 3000 // ms before auto-advancing to next challenge
 
 // Strip diacritics for accent-agnostic comparison
 function normalizeText(s: string): string {
@@ -417,15 +418,15 @@ watch(() => props.showingResult, (showing) => {
 			}
 		}, 800)
 	} else if (showing && props.currentChallenge?.type !== 'meet') {
-		// Start 3-second auto-skip countdown
-		autoSkipCountdown.value = 3
+		// Auto-skip countdown
+		autoSkipCountdown.value = AUTO_SKIP_DELAY_MS / 1000
 		autoSkipIntervalId = setInterval(() => {
 			autoSkipCountdown.value--
 			if (autoSkipCountdown.value <= 0) {
 				clearAutoSkipTimers()
 			}
 		}, 1000)
-		autoSkipTimeoutId = setTimeout(() => { handleNext() }, 3000)
+		autoSkipTimeoutId = setTimeout(() => { handleNext() }, AUTO_SKIP_DELAY_MS)
 	} else if (!showing) {
 		clearAutoSkipTimers()
 		autoSkipCountdown.value = 0
@@ -866,7 +867,7 @@ kbd {
 .result-close {
 	background: var(--color-warning);
 	border: 1px solid var(--color-element-warning);
-	color: var(--color-main-text);
+	color: var(--color-text-warning, var(--color-main-text));
 }
 
 .feedback-icon {

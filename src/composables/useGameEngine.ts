@@ -69,6 +69,14 @@ const PLACEHOLDER_PHOTO = 'https://nextcloud.com/c/themes/nextcloud-theme/dist/i
 // Pool size — how many people we juggle at once
 const ACTIVE_POOL_SIZE = 6
 
+// Close-answer tuning
+const CLOSE_ANSWER_THRESHOLD = 2 // max Levenshtein distance to be "close"
+const CLOSE_ANSWER_XP_DIVISOR = 4 // close answers earn 1/4 of full XP
+
+// Second-hint reveal tuning
+const REVEAL_MIN_COUNT = 2 // minimum letters to reveal
+const REVEAL_FRACTION = 1 / 3 // fraction of hidden letters to reveal
+
 // Monotonic counter — ensures Vue's Transition always sees a new key even when person+type stays the same
 let challengeSeq = 0
 
@@ -305,7 +313,7 @@ export function useGameEngine() {
 		const normalizedCorrect = strip(challenge.correctAnswer)
 		const isCorrect = isMeet || normalizedAnswer === normalizedCorrect
 		// A "close" answer has Levenshtein distance ≤ 2 (catches 1-2 char typos)
-		const isClose = !isCorrect && !isMeet && levenshtein(normalizedAnswer, normalizedCorrect) <= 2
+		const isClose = !isCorrect && !isMeet && levenshtein(normalizedAnswer, normalizedCorrect) <= CLOSE_ANSWER_THRESHOLD
 
 		pp.lastSeen = now
 		sessionStats.value.answered++
@@ -351,7 +359,7 @@ export function useGameEngine() {
 			sessionStats.value.streak = 0
 			progress.value.currentStreak = 0
 
-			const partialXp = Math.ceil(XP_PER_STAGE[challenge.type] / 4)
+			const partialXp = Math.ceil(XP_PER_STAGE[challenge.type] / CLOSE_ANSWER_XP_DIVISOR)
 			progress.value.xp += partialXp
 			sessionStats.value.xpEarned += partialXp
 
@@ -444,7 +452,7 @@ export function useGameEngine() {
 		if (hiddenIndices.length === 0) return baseMask
 
 		// Reveal ~⅓ of remaining hidden letters (minimum 2)
-		const revealCount = Math.max(2, Math.ceil(hiddenIndices.length / 3))
+		const revealCount = Math.max(REVEAL_MIN_COUNT, Math.ceil(hiddenIndices.length * REVEAL_FRACTION))
 		const toReveal = hiddenIndices.sort(() => Math.random() - 0.5).slice(0, revealCount)
 		const chars = Array.from(baseMask)
 		for (const idx of toReveal) {
