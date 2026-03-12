@@ -412,7 +412,7 @@ function confettiStyle(i: number) {
 	align-items: center;
 	justify-content: center;
 	padding: 20px 16px;
-	border-right: 1px solid var(--color-border);
+	border-inline-end: 1px solid var(--color-border);
 	overflow: hidden;
 }
 
@@ -459,9 +459,13 @@ function confettiStyle(i: number) {
 }
 
 .stage-tag.meet        { background: var(--color-primary-element, #0082c9); color: var(--color-primary-element-text, #fff); }
+
 .stage-tag.recognize   { background: #9b59b6; color: #fff; }
+
 .stage-tag.pick_face   { background: #16a085; color: #fff; }
+
 .stage-tag.recall      { background: #e67e22; color: #fff; }
+
 .stage-tag.type        { background: #e74c3c; color: #fff; }
 
 /* ── Prompts ─────────────────────────────────────*/
@@ -592,6 +596,7 @@ function confettiStyle(i: number) {
 }
 
 .btn-submit:hover:not(:disabled) { opacity: 0.88; }
+
 .btn-submit:disabled { opacity: 0.4; cursor: default; }
 
 /* ── Hint ────────────────────────────────────────*/
@@ -680,6 +685,7 @@ function confettiStyle(i: number) {
 }
 
 .btn-action:hover:not(:disabled) { opacity: 0.9; }
+
 .btn-action:disabled { opacity: 0.45; cursor: default; }
 
 /* ── Responsive: stack on narrow screens ─────────*/
@@ -691,7 +697,7 @@ function confettiStyle(i: number) {
 
 	.card-column {
 		flex: 0 0 auto;
-		border-right: none;
+		border-inline-end: none;
 		border-bottom: 1px solid var(--color-border);
 		padding: 14px 16px 12px;
 	}
@@ -812,8 +818,7 @@ function confettiStyle(i: number) {
 .face-correct-label {
 	position: absolute;
 	bottom: 0;
-	left: 0;
-	right: 0;
+	inset-inline: 0;
 	background: rgba(70, 186, 97, 0.9);
 	color: #fff;
 	font-size: 0.72rem;
@@ -829,7 +834,7 @@ function confettiStyle(i: number) {
 .xp-popup {
 	position: fixed;
 	top: 45%;
-	left: 50%;
+	inset-inline-start: 50%;
 	transform: translate(-50%, -50%);
 	font-size: 2rem;
 	font-weight: 800;
@@ -841,7 +846,7 @@ function confettiStyle(i: number) {
 .streak-popup {
 	position: fixed;
 	top: 30%;
-	left: 50%;
+	inset-inline-start: 50%;
 	transform: translateX(-50%);
 	font-size: 1.5rem;
 	font-weight: 800;
@@ -885,6 +890,7 @@ function confettiStyle(i: number) {
 .fade-leave-active {
 	transition: opacity 0.18s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
 	opacity: 0;
@@ -894,10 +900,12 @@ function confettiStyle(i: number) {
 .card-fade-leave-active {
 	transition: opacity 0.22s ease, transform 0.22s ease;
 }
+
 .card-fade-enter-from {
 	opacity: 0;
 	transform: translateY(12px);
 }
+
 .card-fade-leave-to {
 	opacity: 0;
 	transform: translateY(-12px);
@@ -906,6 +914,7 @@ function confettiStyle(i: number) {
 .pop-enter-active {
 	animation: popIn 0.3s ease;
 }
+
 .pop-leave-active {
 	animation: popOut 0.3s ease;
 }

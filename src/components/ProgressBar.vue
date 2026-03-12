@@ -112,7 +112,7 @@ defineProps<{
 	font-size: 0.6rem;
 	font-weight: 700;
 	color: var(--color-primary-element-text, #fff);
-	padding-right: 6px;
+	padding-inline-end: 6px;
 	white-space: nowrap;
 }
 </style>

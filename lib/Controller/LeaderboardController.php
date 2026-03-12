@@ -32,7 +32,7 @@ class LeaderboardController extends Controller {
 	#[NoCSRFRequired]
 	public function getScores(): JSONResponse {
 		$allTime = $this->mapper->getTopAllTime(20);
-		$weekly  = $this->mapper->getTopWeekly(20);
+		$weekly = $this->mapper->getTopWeekly(20);
 		return new JSONResponse(['allTime' => $allTime, 'weekly' => $weekly]);
 	}
 

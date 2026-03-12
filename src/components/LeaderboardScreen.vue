@@ -150,8 +150,9 @@ onMounted(fetchScores)
 
 .tab-btn:first-child {
 	border-radius: var(--border-radius, 8px) 0 0 var(--border-radius, 8px);
-	border-right: none;
+	border-inline-end: none;
 }
+
 .tab-btn:last-child {
 	border-radius: 0 var(--border-radius, 8px) var(--border-radius, 8px) 0;
 }
@@ -169,9 +170,11 @@ onMounted(fetchScores)
 	color: var(--color-text-lighter);
 	font-size: 1rem;
 }
+
 .lb-error {
 	color: var(--color-error, #e9322d);
 }
+
 .lb-spinner {
 	font-size: 1.5rem;
 }
@@ -206,8 +209,11 @@ onMounted(fetchScores)
 	border-color: var(--color-primary-element, #0082c9);
 	background: rgba(0, 130, 201, 0.06);
 }
+
 .lb-entry.rank-gold   { border-color: #f7971e; background: rgba(247, 151, 30, 0.07); }
+
 .lb-entry.rank-silver { border-color: #aaa; background: rgba(170, 170, 170, 0.07); }
+
 .lb-entry.rank-bronze { border-color: #cd7f32; background: rgba(205, 127, 50, 0.07); }
 
 .lb-rank {
@@ -270,6 +276,7 @@ onMounted(fetchScores)
 	border-top: 1px dashed var(--color-border);
 	margin-top: 8px;
 }
+
 .my-rank-label {
 	font-weight: 600;
 }

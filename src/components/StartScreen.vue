@@ -241,7 +241,7 @@ h1 {
 }
 
 .how-it-works {
-	text-align: left;
+	text-align: start;
 	background: var(--color-background-dark, rgba(0,0,0,0.04));
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large, 16px);
