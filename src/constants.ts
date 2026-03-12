@@ -77,6 +77,13 @@ export const FAST_ANSWER_BONUS_XP = 2
 /** Fraction of time limit: answers below this threshold earn bonus XP. */
 export const FAST_ANSWER_THRESHOLD = 0.3
 
+// ── Streak bonus ─────────────────────────────────────────────────────────────
+/** Number of consecutive correct answers required to earn a streak bonus. */
+export const STREAK_BONUS_INTERVAL = 5
+
+/** XP awarded each time the player reaches a streak bonus milestone. */
+export const STREAK_BONUS_XP = 5
+
 // ── Placeholder ─────────────────────────────────────────────────────────────
 /** Nextcloud placeholder photo URL — members with this URL are excluded. */
 export const PLACEHOLDER_PHOTO = 'https://nextcloud.com/c/themes/nextcloud-theme/dist/img/person.jpg'

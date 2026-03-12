@@ -21,6 +21,7 @@
 			:lastAnswerCorrect="lastAnswerCorrect"
 			:lastAnswerClose="lastAnswerClose"
 			:lastResponseTime="lastResponseTime"
+			:lastStreakBonus="lastStreakBonus"
 			:progress="progress"
 			:sessionStats="sessionStats"
 			:lives="lives"
@@ -82,6 +83,7 @@ const {
 	lastAnswerCorrect,
 	lastAnswerClose,
 	lastResponseTime,
+	lastStreakBonus,
 	loading,
 	loadError,
 	allMembers,

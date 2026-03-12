@@ -132,6 +132,7 @@
 							<span class="feedback-icon">{{ lastAnswerCorrect ? '✨' : lastAnswerClose ? '🎯' : timedOut ? '⏰' : '😕' }}</span>
 							<span v-if="lastAnswerCorrect">
 								Correct! +{{ xpEarned }} XP
+								<span v-if="lastStreakBonus > 0" class="streak-bonus">🔥 +{{ lastStreakBonus }} streak</span>
 								<span v-if="lastResponseTime > 0" class="response-time">· {{ (lastResponseTime / 1000).toFixed(1) }}s</span>
 							</span>
 							<span v-else-if="lastAnswerClose">So close! It's <strong>{{ currentChallenge.correctAnswer }}</strong> (+{{ xpEarned }} XP)</span>
@@ -195,6 +196,7 @@ const props = defineProps<{
 	lastAnswerCorrect: boolean
 	lastAnswerClose: boolean
 	lastResponseTime: number
+	lastStreakBonus: number
 	progress: GameProgress
 	sessionStats: SessionStats
 	lives: number
@@ -648,6 +650,11 @@ useHotKey('h', () => {
 	font-weight: 400;
 	opacity: 0.85;
 	font-size: 0.9em;
+}
+
+.streak-bonus {
+	font-weight: 700;
+	opacity: 0.95;
 }
 
 /* ── Hint ──────────────────────────────────────────────────────*/

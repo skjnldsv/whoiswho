@@ -20,6 +20,8 @@ import {
 	PLACEHOLDER_PHOTO,
 	REVEAL_FRACTION,
 	REVEAL_MIN_COUNT,
+	STREAK_BONUS_INTERVAL,
+	STREAK_BONUS_XP,
 } from '../constants.ts'
 import { levenshtein, normalizeText, shuffle } from '../utils/strings.ts'
 import { buildChallenge, generateMaskedName } from './useChallengeBuilder.ts'
@@ -86,6 +88,7 @@ export function useGameEngine() {
 	const lastAnswerCorrect = ref(false)
 	const lastAnswerClose = ref(false)
 	const lastResponseTime = ref(0) // ms taken to answer the most recent challenge
+	const lastStreakBonus = ref(0) // XP bonus awarded for streak milestone (0 if none)
 	// Track last shown person to avoid showing the same person twice in a row
 	const lastPersonId = ref<number | null>(null)
 	// Track when the current challenge was shown, to measure response time
@@ -242,6 +245,15 @@ export function useGameEngine() {
 				sessionStats.value.xpEarned += FAST_ANSWER_BONUS_XP
 			}
 
+			// Award streak milestone bonus every STREAK_BONUS_INTERVAL consecutive correct answers
+			if (sessionStats.value.streak > 0 && sessionStats.value.streak % STREAK_BONUS_INTERVAL === 0) {
+				applyXp(progress.value, STREAK_BONUS_XP)
+				sessionStats.value.xpEarned += STREAK_BONUS_XP
+				lastStreakBonus.value = STREAK_BONUS_XP
+			} else {
+				lastStreakBonus.value = 0
+			}
+
 			if (sessionStats.value.streak > sessionStats.value.bestStreak) {
 				sessionStats.value.bestStreak = sessionStats.value.streak
 			}
@@ -255,11 +267,13 @@ export function useGameEngine() {
 			sessionStats.value.wrong++
 			sessionStats.value.streak = 0
 			sessionStats.value.xpEarned += xp
+			lastStreakBonus.value = 0
 		} else {
 			recordWrong(progress.value, challenge.person.id)
 			sessionStats.value.answered++
 			sessionStats.value.wrong++
 			sessionStats.value.streak = 0
+			lastStreakBonus.value = 0
 
 			lives.value--
 			progress.value.currentLives = lives.value
@@ -413,6 +427,7 @@ export function useGameEngine() {
 		lastAnswerCorrect,
 		lastAnswerClose,
 		lastResponseTime,
+		lastStreakBonus,
 		loading,
 		loadError,
 		allMembers,
