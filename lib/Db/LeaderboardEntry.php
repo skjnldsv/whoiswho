@@ -7,7 +7,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\WhoisWho\Db;
+namespace OCA\WhoIsWho\Db;
 
 use OCP\AppFramework\Db\Entity;
 

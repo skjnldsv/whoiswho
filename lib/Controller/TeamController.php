@@ -5,9 +5,9 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-namespace OCA\WhoisWho\Controller;
+namespace OCA\WhoIsWho\Controller;
 
-use OCA\WhoisWho\AppInfo\Application;
+use OCA\WhoIsWho\AppInfo\Application;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;

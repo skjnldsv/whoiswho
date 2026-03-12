@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-namespace OCA\WhoisWho\AppInfo;
+namespace OCA\WhoIsWho\AppInfo;
 
 use OCP\AppFramework\App;
 

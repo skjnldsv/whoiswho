@@ -7,10 +7,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\WhoisWho\Controller;
+namespace OCA\WhoIsWho\Controller;
 
-use OCA\WhoisWho\AppInfo\Application;
-use OCA\WhoisWho\Db\LeaderboardMapper;
+use OCA\WhoIsWho\AppInfo\Application;
+use OCA\WhoIsWho\Db\LeaderboardMapper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
