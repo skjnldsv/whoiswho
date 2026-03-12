@@ -65,8 +65,9 @@
 										correct: showingResult && option === currentChallenge.correctAnswer,
 										wrong: showingResult && chosenAnswer === option && option !== currentChallenge.correctAnswer,
 										disabled: showingResult,
+										eliminated: !showingResult && eliminatedOptions.includes(option),
 									}"
-									:disabled="showingResult"
+									:disabled="showingResult || (!showingResult && eliminatedOptions.includes(option))"
 									@click="handleChoice(option)">
 									{{ option }}
 								</button>
@@ -84,8 +85,9 @@
 										correct: showingResult && member.name === currentChallenge.correctAnswer,
 										wrong: showingResult && chosenAnswer === member.name && member.name !== currentChallenge.correctAnswer,
 										disabled: showingResult,
+										eliminated: !showingResult && eliminatedOptions.includes(member.name),
 									}"
-									:disabled="showingResult"
+									:disabled="showingResult || (!showingResult && eliminatedOptions.includes(member.name))"
 									@click="handleChoice(member.name)">
 									<img :src="member.photo" :alt="showingResult ? member.name : ''" class="face-option-img" />
 									<span v-if="showingResult && member.name === currentChallenge.correctAnswer" class="face-correct-label">✓ {{ member.name }}</span>
@@ -96,7 +98,7 @@
 						<!-- Recall: fill in blanks -->
 						<div v-else-if="currentChallenge.type === 'recall'" class="recall-area">
 							<p class="prompt">Complete the name:</p>
-							<p class="masked-name">{{ currentChallenge.maskedName }}</p>
+							<p class="masked-name">{{ revealedMask || currentChallenge.maskedName }}</p>
 							<div class="type-input-row">
 								<input ref="recallInput"
 									v-model="typedAnswer"
@@ -183,12 +185,14 @@
 						class="btn-action"
 						:disabled="answered"
 						@click="handleMeet">
-						Got it → <kbd>↵</kbd>
+						Got it <kbd>↵</kbd>
 					</button>
 					<button v-else-if="showingResult && currentChallenge.type !== 'meet'"
 						class="btn-action"
+						:class="{ 'btn-action--auto-advancing': autoAdvancing }"
+						:style="autoAdvancing ? { '--auto-progress-duration': AUTO_SKIP_DELAY_MS + 'ms' } : {}"
 						@click="handleNext">
-						{{ gameOver ? '📊 See Results' : (autoSkipCountdown > 0 ? `Next → (${autoSkipCountdown}s)` : 'Next →') }} <kbd>↵</kbd>
+						{{ gameOver ? '📊 See Results' : 'Next' }} <kbd>↵</kbd>
 					</button>
 				</div>
 			</div>
@@ -272,10 +276,9 @@ const typeInput = useTemplateRef<HTMLInputElement>('typeInput')
 const answered = ref(false)
 // Prevent double-navigation when clicking Next
 const advancing = ref(false)
-// Auto-skip countdown (seconds remaining)
-const autoSkipCountdown = ref(0)
+// Whether auto-advancing is in progress (drives CSS gradient fill on Next button)
+const autoAdvancing = ref(false)
 let autoSkipTimeoutId: ReturnType<typeof setTimeout> | null = null
-let autoSkipIntervalId: ReturnType<typeof setInterval> | null = null
 const AUTO_SKIP_DELAY_MS = 3000 // ms before auto-advancing to next challenge
 
 // Strip diacritics for accent-agnostic comparison
@@ -312,7 +315,7 @@ const XP_PER_STAGE: Record<string, number> = {
 
 function clearAutoSkipTimers() {
 	if (autoSkipTimeoutId !== null) { clearTimeout(autoSkipTimeoutId); autoSkipTimeoutId = null }
-	if (autoSkipIntervalId !== null) { clearInterval(autoSkipIntervalId); autoSkipIntervalId = null }
+	autoAdvancing.value = false
 }
 
 // Reset per-challenge state when a new challenge arrives
@@ -323,7 +326,6 @@ watch(() => props.currentChallenge, async () => {
 	chosenAnswer.value = ''
 	xpEarned.value = 0
 	clearAutoSkipTimers()
-	autoSkipCountdown.value = 0
 	await nextTick()
 	recallInput.value?.focus()
 	typeInput.value?.focus()
@@ -385,7 +387,6 @@ function handleNext() {
 	if (advancing.value) return
 	advancing.value = true
 	clearAutoSkipTimers()
-	autoSkipCountdown.value = 0
 	if (props.gameOver) {
 		emit('end')
 	} else {
@@ -418,18 +419,11 @@ watch(() => props.showingResult, (showing) => {
 			}
 		}, 800)
 	} else if (showing && props.currentChallenge?.type !== 'meet') {
-		// Auto-skip countdown
-		autoSkipCountdown.value = AUTO_SKIP_DELAY_MS / 1000
-		autoSkipIntervalId = setInterval(() => {
-			autoSkipCountdown.value--
-			if (autoSkipCountdown.value <= 0) {
-				clearAutoSkipTimers()
-			}
-		}, 1000)
+		// Auto-skip: fill Next button with a gradient over AUTO_SKIP_DELAY_MS
+		autoAdvancing.value = true
 		autoSkipTimeoutId = setTimeout(() => { handleNext() }, AUTO_SKIP_DELAY_MS)
 	} else if (!showing) {
 		clearAutoSkipTimers()
-		autoSkipCountdown.value = 0
 	}
 })
 
@@ -655,6 +649,12 @@ useHotKey(['1', '2', '3', '4'], (e) => {
 }
 
 .choice-btn.disabled { cursor: default; }
+
+.choice-btn.eliminated {
+	opacity: 0.3;
+	text-decoration: line-through;
+	cursor: default;
+}
 
 /* ── Recall / Type ───────────────────────────────*/
 .recall-area,
@@ -899,6 +899,28 @@ kbd {
 
 .btn-action:disabled { opacity: 0.45; cursor: default; }
 
+/* Gradient fill animation when auto-advancing to next challenge */
+.btn-action--auto-advancing {
+	--auto-progress-duration: 3000ms;
+	background: linear-gradient(
+		to right,
+		var(--color-primary-element-hover) var(--fill-pct, 0%),
+		var(--color-primary-element) var(--fill-pct, 0%)
+	);
+	animation: btnAutoFill var(--auto-progress-duration) linear forwards;
+}
+
+@keyframes btnAutoFill {
+	from { --fill-pct: 0%; }
+	to   { --fill-pct: 100%; }
+}
+
+@property --fill-pct {
+	syntax: '<percentage>';
+	inherits: false;
+	initial-value: 0%;
+}
+
 /* ── Responsive: stack on narrow screens ─────────*/
 @media (max-width: 680px) {
 	.game-body {
@@ -988,9 +1010,8 @@ kbd {
 }
 
 .face-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	grid-template-rows: 1fr 1fr;
+	display: flex;
+	flex-direction: row;
 	gap: 10px;
 	flex: 1;
 	min-height: 0;
@@ -1005,6 +1026,7 @@ kbd {
 	cursor: pointer;
 	padding: 0;
 	min-height: 0;
+	flex: 1;
 	transition: border-color 0.15s ease, transform 0.12s ease;
 	margin: 0;
 }
@@ -1026,11 +1048,16 @@ kbd {
 
 .face-option.disabled { cursor: default; }
 
+.face-option.eliminated {
+	opacity: 0.25;
+	cursor: default;
+}
+
 .face-option-img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
-	object-position: top center;
+	object-position: center center;
 	display: block;
 }
 
