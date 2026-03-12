@@ -82,11 +82,15 @@
 				<div class="mechanics">
 					<div class="mechanic-item">
 						<span class="mechanic-icon">🔥</span>
-						<p><strong>Streaks</strong> count consecutive correct answers within a session. A wrong or close answer resets the streak to zero. Streaks don't carry over to the next session.</p>
+						<p><strong>Streaks</strong> count consecutive correct answers within a session. A wrong or close answer resets the streak to zero. Every <strong>5 correct answers in a row</strong> earns a <strong>+5 XP streak bonus</strong>. Streaks don't carry over to the next session.</p>
+					</div>
+					<div class="mechanic-item">
+						<span class="mechanic-icon">⚡</span>
+						<p><strong>Speed bonus</strong> — answer within the first 30% of the time limit to earn +2 XP. Challenges have countdown timers: Recognize/Pick-face 5 s, Recall 10 s, Type 15 s.</p>
 					</div>
 					<div class="mechanic-item">
 						<span class="mechanic-icon">❤️</span>
-						<p><strong>Lives</strong> — you have 3 per session. Only outright wrong answers cost a life; skipping and close answers (typos) do not. Hearts cannot be regained once lost.</p>
+						<p><strong>Lives</strong> — you have 3 per session. Only outright wrong answers and time-outs cost a life; skipping and close answers (typos) do not. Hearts cannot be regained once lost.</p>
 					</div>
 					<div class="mechanic-item">
 						<span class="mechanic-icon">💡</span>

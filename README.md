@@ -27,23 +27,31 @@ Wrong answers regress a person back one stage and show them again sooner. Member
 - Earned for every correct answer; the harder the stage, the more XP.
 - A *close* answer (edit distance of 1–2 characters, e.g. a typo) earns ¼ of the full XP and does not advance or regress the stage.
 - Hints cost XP: first hint (title & department) −10 XP; second hint (reveal letters or eliminate a wrong option) −15 XP.
+- **Speed bonus** — answer within the first 30% of the time limit to earn +2 XP on top of the stage XP.
 - Every 100 XP completes a level.
 
 **Streaks 🔥**
 - Your streak counts *consecutive correct* answers in the current session.
-- Any outright wrong answer, skip, or close answer resets the streak to zero.
+- Any outright wrong answer, time-out, skip, or close answer resets the streak to zero.
+- **Streak milestone bonus** — every 5 correct answers in a row earns +5 XP.
 - Streaks are **session-only**: they start fresh at zero when you begin a new session and cannot be resumed.
 
 **Lives ❤️**
 - You start each session with **3 lives**.
-- Only outright wrong answers cost a life. Skipping ("I don't know") and close answers do **not** cost a life.
+- Only outright wrong answers and time-outs cost a life. Skipping ("I don't know") and close answers do **not** cost a life.
 - Lives **cannot be regained** once lost. The session ends when you run out of lives or when there are no more challenges due.
+
+**Countdown timers ⏱️**
+- Each challenge except *Meet* has a time limit: Recognize / Pick-face 5 s, Recall 10 s, Type 15 s.
+- Running out of time counts as a wrong answer and costs a life.
 
 ### Features
 
 - 🧠 Spaced repetition scheduling (30 s → 2 min → 10 min between reviews)
 - 🎯 Four challenge types including photo recognition
-- ❤️ 3 lives per session (wrong answers only; close answers and skips are free)
+- ❤️ 3 lives per session (wrong answers and time-outs only; close answers and skips are free)
+- ⚡ Speed bonus (+2 XP) for fast answers; streak milestone bonus (+5 XP every 5 in a row)
+- ⏱️ Countdown timers per challenge type (5 s / 10 s / 15 s)
 - 💡 Two-level hint system (costs XP)
 - 🏆 Weekly and all-time leaderboard
 - �� Session statistics and level-up progression
