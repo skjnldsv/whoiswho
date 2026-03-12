@@ -34,7 +34,7 @@ class TeamController extends OCSController {
 				'timeout' => 20,
 				'headers' => ['User-Agent' => 'Nextcloud/WhoIsWho-App'],
 			]);
-			$html = (string) $response->getBody();
+			$html = (string)$response->getBody();
 		} catch (\Exception $e) {
 			return new DataResponse(['error' => 'Failed to fetch team page: ' . $e->getMessage()], 503);
 		}
@@ -56,7 +56,7 @@ class TeamController extends OCSController {
 				if ($name !== '') {
 					$departments[] = [
 						'name' => $name,
-						'index' => (int) $h2matches[0][$i][1],
+						'index' => (int)$h2matches[0][$i][1],
 					];
 				}
 			}
