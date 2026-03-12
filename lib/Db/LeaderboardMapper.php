@@ -7,7 +7,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\WhoisWho\Db;
+namespace OCA\WhoIsWho\Db;
 
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
@@ -67,12 +67,12 @@ class LeaderboardMapper extends QBMapper {
 			$qb = $this->db->getQueryBuilder();
 			$qb->insert($this->tableName)
 				->values([
-					'user_id'      => $qb->createNamedParameter($userId),
+					'user_id' => $qb->createNamedParameter($userId),
 					'display_name' => $qb->createNamedParameter($displayName),
-					'total_score'  => $qb->createNamedParameter($scoreToAdd, IQueryBuilder::PARAM_INT),
-					'week_label'   => $qb->createNamedParameter($currentWeek),
-					'week_score'   => $qb->createNamedParameter($scoreToAdd, IQueryBuilder::PARAM_INT),
-					'updated_at'   => $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT),
+					'total_score' => $qb->createNamedParameter($scoreToAdd, IQueryBuilder::PARAM_INT),
+					'week_label' => $qb->createNamedParameter($currentWeek),
+					'week_score' => $qb->createNamedParameter($scoreToAdd, IQueryBuilder::PARAM_INT),
+					'updated_at' => $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT),
 				])
 				->executeStatement();
 		} else {
@@ -85,10 +85,10 @@ class LeaderboardMapper extends QBMapper {
 			$qb = $this->db->getQueryBuilder();
 			$qb->update($this->tableName)
 				->set('display_name', $qb->createNamedParameter($displayName))
-				->set('total_score',  $qb->createNamedParameter($totalScore, IQueryBuilder::PARAM_INT))
-				->set('week_label',   $qb->createNamedParameter($currentWeek))
-				->set('week_score',   $qb->createNamedParameter($weekScore, IQueryBuilder::PARAM_INT))
-				->set('updated_at',   $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+				->set('total_score', $qb->createNamedParameter($totalScore, IQueryBuilder::PARAM_INT))
+				->set('week_label', $qb->createNamedParameter($currentWeek))
+				->set('week_score', $qb->createNamedParameter($weekScore, IQueryBuilder::PARAM_INT))
+				->set('updated_at', $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT))
 				->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
 				->executeStatement();
 		}

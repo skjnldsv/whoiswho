@@ -7,10 +7,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\WhoisWho\Controller;
+namespace OCA\WhoIsWho\Controller;
 
-use OCA\WhoisWho\AppInfo\Application;
-use OCA\WhoisWho\Db\LeaderboardMapper;
+use OCA\WhoIsWho\AppInfo\Application;
+use OCA\WhoIsWho\Db\LeaderboardMapper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -28,21 +28,14 @@ class LeaderboardController extends Controller {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
-	/**
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function getScores(): JSONResponse {
 		$allTime = $this->mapper->getTopAllTime(20);
-		$weekly  = $this->mapper->getTopWeekly(20);
+		$weekly = $this->mapper->getTopWeekly(20);
 		return new JSONResponse(['allTime' => $allTime, 'weekly' => $weekly]);
 	}
 
-	/**
-	 * @NoAdminRequired
-	 */
 	#[NoAdminRequired]
 	public function submitScore(int $score): JSONResponse {
 		$user = $this->userSession->getUser();

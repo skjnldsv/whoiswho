@@ -1,3 +1,7 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 John Molakvoæ <skjnldsv@protonmail.com>
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+  -->
 <template>
 	<div class="progress-bar-container">
 		<div class="stats-row">
@@ -108,7 +112,7 @@ defineProps<{
 	font-size: 0.6rem;
 	font-weight: 700;
 	color: var(--color-primary-element-text, #fff);
-	padding-right: 6px;
+	padding-inline-end: 6px;
 	white-space: nowrap;
 }
 </style>

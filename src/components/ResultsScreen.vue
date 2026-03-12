@@ -1,3 +1,7 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 John Molakvoæ <skjnldsv@protonmail.com>
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+  -->
 <template>
 	<div class="results-screen">
 		<div class="results-card">
@@ -48,15 +52,15 @@
 			</div>
 
 			<div class="result-actions">
-				<button class="btn-primary" @click="$emit('playAgain')">
+				<NcButton class="btn-play-again" type="primary" @click="$emit('playAgain')">
 					🎮 Play Again
-				</button>
-				<button class="btn-secondary" @click="$emit('leaderboard')">
+				</NcButton>
+				<NcButton type="secondary" @click="$emit('leaderboard')">
 					🏆 Leaderboard
-				</button>
-				<button class="btn-secondary" @click="$emit('goHome')">
+				</NcButton>
+				<NcButton type="tertiary" @click="$emit('goHome')">
 					← Back to Menu
-				</button>
+				</NcButton>
 			</div>
 		</div>
 	</div>
@@ -64,6 +68,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import type { SessionStats } from '../composables/useGameEngine'
 
 const props = defineProps<{
@@ -193,40 +198,12 @@ const accuracy = computed(() => {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
+	align-items: center;
 }
 
-.btn-primary {
-	padding: 14px 32px;
-	font-size: 1rem;
-	font-weight: 700;
-	border: none;
-	border-radius: var(--border-radius-pill, var(--border-radius-large, 20px));
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
-	cursor: pointer;
-	transition: opacity 0.15s ease;
-	min-height: 44px;
-}
-
-.btn-primary:hover {
-	opacity: 0.9;
-}
-
-.btn-secondary {
-	padding: 10px 24px;
-	font-size: 0.9rem;
-	font-weight: 600;
-	border: 2px solid var(--color-border);
-	border-radius: var(--border-radius-pill, var(--border-radius-large, 20px));
-	background: transparent;
-	color: var(--color-main-text);
-	cursor: pointer;
-	transition: all 0.15s ease;
-	min-height: 40px;
-}
-
-.btn-secondary:hover {
-	background: var(--color-background-hover);
-	border-color: var(--color-primary-element);
+.btn-play-again {
+	font-size: 1rem !important;
+	font-weight: 700 !important;
+	min-height: 44px !important;
 }
 </style>

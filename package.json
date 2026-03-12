@@ -1,19 +1,17 @@
 {
   "name": "whoiswho",
-  "description": "A simple Nextcloud app tutorial for building a notes app",
+  "description": "A Duolingo-style memory game to learn names and faces of Nextcloud team members",
   "version": "1.0.0",
-  "author": "Julius Härtl <jus@bitgrid.net>",
-  "contributors": [
-    "John Molakvoæ <skjnldsv@protonmail.com>"
-  ],
+  "author": "John Molakvoæ <skjnldsv@protonmail.com>",
+  "contributors": [],
   "bugs": {
-    "url": "https://github.com/nextcloud/app-tutorial/issues"
+    "url": "https://github.com/skjnldsv/whoiswho/issues"
   },
   "repository": {
-    "url": "https://github.com/nextcloud/app-tutorial",
+    "url": "https://github.com/skjnldsv/whoiswho",
     "type": "git"
   },
-  "homepage": "https://github.com/nextcloud/app-tutorial",
+  "homepage": "https://github.com/skjnldsv/whoiswho",
   "license": "AGPL-3.0-or-later",
   "private": true,
   "type": "module",
@@ -28,6 +26,7 @@
   },
   "dependencies": {
     "@nextcloud/axios": "^2.5.2",
+    "@nextcloud/browser-storage": "^0.5.0",
     "@nextcloud/dialogs": "^7.3.0",
     "@nextcloud/l10n": "^3.4.1",
     "@nextcloud/router": "^3.1.0",

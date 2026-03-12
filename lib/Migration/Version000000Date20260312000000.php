@@ -7,7 +7,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\WhoisWho\Migration;
+namespace OCA\WhoIsWho\Migration;
 
 use Closure;
 use OCP\DB\ISchemaWrapper;

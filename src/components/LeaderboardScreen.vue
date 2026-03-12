@@ -1,11 +1,15 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 John Molakvoæ <skjnldsv@protonmail.com>
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+  -->
 <template>
 	<div class="leaderboard-screen">
 		<!-- Header -->
 		<div class="lb-header">
 			<h2 class="lb-title">🏆 Leaderboard</h2>
-			<button class="btn-back" @click="emit('close')">
+			<NcButton type="tertiary" @click="emit('close')">
 				← Back
-			</button>
+			</NcButton>
 		</div>
 
 		<!-- Tabs -->
@@ -62,6 +66,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import { useLeaderboard } from '../composables/useLeaderboard'
 import type { LeaderboardEntry } from '../composables/useLeaderboard'
 
@@ -122,21 +127,6 @@ onMounted(fetchScores)
 	font-weight: 700;
 }
 
-.btn-back {
-	padding: 8px 18px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-pill, 20px);
-	background: transparent;
-	color: var(--color-main-text);
-	font-size: 0.9rem;
-	font-weight: 600;
-	cursor: pointer;
-	transition: background 0.15s;
-}
-.btn-back:hover {
-	background: var(--color-background-hover);
-}
-
 /* ── Tabs ── */
 .lb-tabs {
 	display: flex;
@@ -160,8 +150,9 @@ onMounted(fetchScores)
 
 .tab-btn:first-child {
 	border-radius: var(--border-radius, 8px) 0 0 var(--border-radius, 8px);
-	border-right: none;
+	border-inline-end: none;
 }
+
 .tab-btn:last-child {
 	border-radius: 0 var(--border-radius, 8px) var(--border-radius, 8px) 0;
 }
@@ -179,9 +170,11 @@ onMounted(fetchScores)
 	color: var(--color-text-lighter);
 	font-size: 1rem;
 }
+
 .lb-error {
 	color: var(--color-error, #e9322d);
 }
+
 .lb-spinner {
 	font-size: 1.5rem;
 }
@@ -216,8 +209,11 @@ onMounted(fetchScores)
 	border-color: var(--color-primary-element, #0082c9);
 	background: rgba(0, 130, 201, 0.06);
 }
+
 .lb-entry.rank-gold   { border-color: #f7971e; background: rgba(247, 151, 30, 0.07); }
+
 .lb-entry.rank-silver { border-color: #aaa; background: rgba(170, 170, 170, 0.07); }
+
 .lb-entry.rank-bronze { border-color: #cd7f32; background: rgba(205, 127, 50, 0.07); }
 
 .lb-rank {
@@ -280,6 +276,7 @@ onMounted(fetchScores)
 	border-top: 1px dashed var(--color-border);
 	margin-top: 8px;
 }
+
 .my-rank-label {
 	font-weight: 600;
 }

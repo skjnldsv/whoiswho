@@ -1,3 +1,7 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 John Molakvoæ <skjnldsv@protonmail.com>
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+  -->
 <template>
 	<div class="start-screen">
 		<div class="hero">
@@ -32,15 +36,15 @@
 		</div>
 
 		<div class="actions">
-			<button class="btn-primary" @click="$emit('start')">
+			<NcButton class="btn-start" type="primary" @click="$emit('start')">
 				{{ hasProgress ? '▶ Continue Learning' : '🎮 Start Game' }}
-			</button>
-			<button class="btn-secondary btn-leaderboard" @click="$emit('leaderboard')">
+			</NcButton>
+			<NcButton type="secondary" @click="$emit('leaderboard')">
 				🏆 Leaderboard
-			</button>
-			<button v-if="hasProgress" class="btn-secondary" @click="$emit('reset')">
+			</NcButton>
+			<NcButton v-if="hasProgress" type="tertiary" @click="$emit('reset')">
 				↺ Reset Progress
-			</button>
+			</NcButton>
 		</div>
 
 		<div class="how-it-works">
@@ -82,6 +86,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import type { TeamMember } from '../composables/useGameEngine'
 import type { GameProgress } from '../composables/useStorage'
 
@@ -228,42 +233,15 @@ h1 {
 	margin-bottom: 32px;
 }
 
-.btn-primary {
-	padding: 14px 44px;
-	font-size: 1.1rem;
-	font-weight: 700;
-	border: none;
-	border-radius: var(--border-radius-pill, var(--border-radius-large, 22px));
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
-	cursor: pointer;
-	transition: opacity 0.15s ease;
-	min-height: 48px;
-}
-
-.btn-primary:hover {
-	opacity: 0.9;
-}
-
-.btn-secondary {
-	padding: 10px 24px;
-	font-size: 0.9rem;
-	font-weight: 600;
-	border: 2px solid var(--color-border);
-	border-radius: var(--border-radius-pill, var(--border-radius-large, 20px));
-	background: transparent;
-	color: var(--color-main-text);
-	cursor: pointer;
-	transition: all 0.15s ease;
-}
-
-.btn-secondary:hover {
-	background: var(--color-background-hover);
-	border-color: var(--color-primary-element);
+.btn-start {
+	font-size: 1.1rem !important;
+	font-weight: 700 !important;
+	min-height: 48px !important;
+	padding: 0 44px !important;
 }
 
 .how-it-works {
-	text-align: left;
+	text-align: start;
 	background: var(--color-background-dark, rgba(0,0,0,0.04));
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large, 16px);

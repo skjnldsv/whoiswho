@@ -5,6 +5,8 @@
 
 import { ref, computed } from 'vue'
 import type { Ref } from 'vue'
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import {
 	loadProgress,
 	saveProgress,
@@ -96,12 +98,8 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 	const loading = ref(true)
 	const loadError = ref(false)
 
-	const apiUrl = (window as unknown as { OC?: { generateUrl: (p: string) => string } })
-		.OC?.generateUrl('/apps/whoiswho/team') ?? '/index.php/apps/whoiswho/team'
-
-	fetch(apiUrl)
-		.then(r => { if (!r.ok) throw new Error('Network error'); return r.json() })
-		.then((data: TeamMember[]) => { allMembersRaw.value = data })
+	axios.get<TeamMember[]>(generateUrl('/apps/whoiswho/team'))
+		.then(({ data }) => { allMembersRaw.value = data })
 		.catch(() => { loadError.value = true })
 		.finally(() => { loading.value = false })
 

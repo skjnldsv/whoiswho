@@ -5,10 +5,12 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-namespace OCA\WhoisWho\Controller;
+namespace OCA\WhoIsWho\Controller;
 
-use OCA\WhoisWho\AppInfo\Application;
+use OCA\WhoIsWho\AppInfo\Application;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\Http\Client\IClientService;
 use OCP\IRequest;
@@ -25,6 +27,8 @@ class TeamController extends Controller {
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
 	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
 	public function index(): JSONResponse {
 		$client = $this->clientService->newClient();
 		try {
