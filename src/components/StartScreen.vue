@@ -7,9 +7,13 @@
 		<!-- Top: hero + actions -->
 		<div class="start-top">
 			<div class="hero">
-				<div class="logo-icon">{{ heroEmoji }}</div>
+				<div class="logo-icon">
+					{{ heroEmoji }}
+				</div>
 				<h1>Who's Who</h1>
-				<p class="subtitle">Learn the names and faces of the Nextcloud team</p>
+				<p class="subtitle">
+					Learn the names and faces of the Nextcloud team
+				</p>
 			</div>
 
 			<div v-if="hasProgress" class="resume-banner">
@@ -61,7 +65,9 @@
 						</div>
 					</div>
 				</div>
-				<p class="tip">💡 Wrong answers cost a life but show that person again sooner. You have 3 lives per session!</p>
+				<p class="tip">
+					💡 Wrong answers cost a life but show that person again sooner. You have 3 lives per session!
+				</p>
 			</div>
 
 			<!-- Leaderboard widget -->
@@ -73,10 +79,10 @@
 					</button>
 				</div>
 				<div class="lb-tabs">
-					<button :class="['lb-tab', { active: lbTab === 'weekly' }]" @click="lbTab = 'weekly'">
+					<button class="lb-tab" :class="[{ active: lbTab === 'weekly' }]" @click="lbTab = 'weekly'">
 						This Week
 					</button>
-					<button :class="['lb-tab', { active: lbTab === 'alltime' }]" @click="lbTab = 'alltime'">
+					<button class="lb-tab" :class="[{ active: lbTab === 'alltime' }]" @click="lbTab = 'alltime'">
 						All Time
 					</button>
 				</div>
@@ -91,7 +97,8 @@
 						No scores yet — be the first! 🚀
 					</div>
 					<div v-else class="lb-list">
-						<div v-for="(entry, i) in currentList.slice(0, 5)"
+						<div
+							v-for="(entry, i) in currentList.slice(0, 5)"
 							:key="entry.user_id"
 							class="lb-entry"
 							:class="{ 'is-me': entry.user_id === currentUser }">
@@ -107,27 +114,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useLeaderboard } from '../composables/useLeaderboard'
-import type { TeamMember } from '../composables/useGameEngine'
-import type { GameProgress } from '../composables/useStorage'
+import type { TeamMember } from '../composables/useGameEngine.ts'
+import type { GameProgress } from '../composables/useStorage.ts'
 
-const HERO_EMOJIS = ['🧑‍🤝‍🧑', '👫', '👬', '👭', '🫂']
-const heroEmoji = HERO_EMOJIS[Math.floor(Math.random() * HERO_EMOJIS.length)]
+import { computed, onMounted, ref } from 'vue'
+import { useLeaderboard } from '../composables/useLeaderboard.ts'
 
 const props = defineProps<{
 	allMembers: TeamMember[]
 	progress: GameProgress
 }>()
-
 defineEmits<{
 	start: []
 	reset: []
 	leaderboard: []
 }>()
+const HERO_EMOJIS = ['🧑‍🤝‍🧑', '👫', '👬', '👭', '🫂']
+const heroEmoji = HERO_EMOJIS[Math.floor(Math.random() * HERO_EMOJIS.length)]
 
 const hasProgress = computed(() => props.progress.totalAnswered > 0)
-const mastered = computed(() => Object.values(props.progress.people).filter(p => p.stage >= 4).length)
+const mastered = computed(() => Object.values(props.progress.people).filter((p) => p.stage >= 4).length)
 const total = computed(() => props.allMembers.length)
 const level = computed(() => props.progress.level)
 const xp = computed(() => props.progress.xp)
@@ -137,10 +143,20 @@ const { allTime, weekly, loading: lbLoading, error: lbError, currentUser, fetchS
 const lbTab = ref<'weekly' | 'alltime'>('weekly')
 const currentList = computed(() => lbTab.value === 'weekly' ? weekly.value : allTime.value)
 
+/**
+ *
+ * @param i The rank index (0-based)
+ */
 function rankLabel(i: number): string {
-	if (i === 0) return '🥇'
-	if (i === 1) return '🥈'
-	if (i === 2) return '🥉'
+	if (i === 0) {
+		return '🥇'
+	}
+	if (i === 1) {
+		return '🥈'
+	}
+	if (i === 2) {
+		return '🥉'
+	}
 	return `#${i + 1}`
 }
 

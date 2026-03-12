@@ -32,6 +32,9 @@ export interface GameProgress {
 	lastPlayed: number
 }
 
+/**
+ *
+ */
 function defaultProgress(): GameProgress {
 	return {
 		people: {},
@@ -46,6 +49,9 @@ function defaultProgress(): GameProgress {
 	}
 }
 
+/**
+ *
+ */
 export function loadProgress(): GameProgress {
 	try {
 		const raw = storage.getItem(STORAGE_KEY)
@@ -66,14 +72,26 @@ export function loadProgress(): GameProgress {
 	return defaultProgress()
 }
 
+/**
+ *
+ * @param progress The game progress to save
+ */
 export function saveProgress(progress: GameProgress): void {
 	storage.setItem(STORAGE_KEY, JSON.stringify(progress))
 }
 
+/**
+ *
+ */
 export function resetProgress(): void {
 	storage.removeItem(STORAGE_KEY)
 }
 
+/**
+ *
+ * @param progress The game progress object
+ * @param personId The person's unique ID
+ */
 export function getPersonProgress(progress: GameProgress, personId: number): PersonProgress {
 	if (!progress.people[personId]) {
 		progress.people[personId] = {
