@@ -144,7 +144,6 @@
 				</div>
 				<button v-if="!showingResult && currentChallenge.type !== 'meet' && !hintText"
 					class="btn-hint"
-					type="tertiary"
 					:disabled="progress.xp < 10"
 					:title="progress.xp < 10 ? 'Need 10 XP for a hint' : 'Use hint (-10 XP)'"
 					@click="requestHint">
@@ -167,14 +166,12 @@
 					</Transition>
 					<button v-if="currentChallenge.type === 'meet' && !showingResult"
 						class="btn-action"
-						type="primary"
 						:disabled="answered"
 						@click="handleMeet">
 						Got it →
 					</button>
 					<button v-else-if="showingResult && currentChallenge.type !== 'meet'"
 						class="btn-action"
-						type="primary"
 						@click="handleNext">
 						{{ gameOver ? '📊 See Results' : 'Next →' }}
 					</button>
