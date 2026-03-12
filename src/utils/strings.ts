@@ -6,6 +6,8 @@
 /**
  * Strip diacritics for accent-agnostic text comparison.
  * E.g. "Jose" matches "José".
+ *
+ * @param s The string to normalize
  */
 export function normalizeText(s: string): string {
 	return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -13,6 +15,9 @@ export function normalizeText(s: string): string {
 
 /**
  * Levenshtein distance — used for close-answer detection (e.g. 1–2 char typos).
+ *
+ * @param a The first string
+ * @param b The second string
  */
 export function levenshtein(a: string, b: string): number {
 	const m = a.length
@@ -30,6 +35,8 @@ export function levenshtein(a: string, b: string): number {
 
 /**
  * Return the display label for a leaderboard rank position (0-indexed).
+ *
+ * @param i The 0-indexed rank position
  */
 export function rankLabel(i: number): string {
 	if (i === 0) {
