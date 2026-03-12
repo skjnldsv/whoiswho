@@ -5,10 +5,15 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+declare(strict_types=1);
+
 namespace OCA\WhoIsWho\Controller;
 
 use OCA\WhoIsWho\AppInfo\Application;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\ContentSecurityPolicy;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IRequest;
@@ -20,12 +25,12 @@ class PageController extends Controller {
 	}
 
 	/**
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 *
 	 * Render default template
 	 */
-	public function index() {
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	#[FrontpageRoute(verb: 'GET', url: '/')]
+	public function index(): TemplateResponse {
 		Util::addScript(Application::APP_ID, 'whoiswho-main');
 		Util::addStyle(Application::APP_ID, 'whoiswho-main');
 
