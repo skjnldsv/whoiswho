@@ -62,7 +62,7 @@ import ResultsScreen from './components/ResultsScreen.vue'
 import StartScreen from './components/StartScreen.vue'
 import { useGameEngine } from './composables/useGameEngine.ts'
 import { useLeaderboard } from './composables/useLeaderboard.ts'
-import { defaultProgress, resetProgress as doResetProgress } from './composables/useStorage.ts'
+import { defaultProgress } from './composables/useStorage.ts'
 
 const screen = ref<'start' | 'game' | 'results' | 'leaderboard'>('start')
 const hintText = ref<string | null>(null)
@@ -103,12 +103,12 @@ const {
 /**
  *
  */
-function startGame() {
+async function startGame() {
 	hintText.value = null
 	hintLevel.value = 0
 	eliminatedOptions.value = []
 	revealedMask.value = null
-	startSession()
+	await startSession()
 	screen.value = 'game'
 }
 
@@ -116,24 +116,24 @@ function startGame() {
  *
  * @param answer The player's answer string
  */
-function handleAnswer(answer: string) {
-	submitAnswer(answer)
+async function handleAnswer(answer: string) {
+	await submitAnswer(answer)
 	hintText.value = null
 }
 
 /**
  *
  */
-function handleSkip() {
-	skipAnswer()
+async function handleSkip() {
+	await skipAnswer()
 	hintText.value = null
 }
 
 /**
  *
  */
-function handleNext() {
-	nextChallenge()
+async function handleNext() {
+	await nextChallenge()
 	hintText.value = null
 	hintLevel.value = 0
 	eliminatedOptions.value = []
@@ -172,15 +172,15 @@ function handleGoHome() {
 /**
  *
  */
-function handleHint() {
+async function handleHint() {
 	if (hintLevel.value === 0) {
-		const text = useHint()
+		const text = await useHint()
 		if (text !== null) {
 			hintText.value = text
 			hintLevel.value = 1
 		}
 	} else if (hintLevel.value === 1) {
-		const result = useSecondHint()
+		const result = await useSecondHint()
 		if (result.revealedMask || result.eliminatedOption) {
 			if (result.revealedMask) {
 				revealedMask.value = result.revealedMask
@@ -197,7 +197,7 @@ function handleHint() {
  *
  */
 function handleReset() {
-	doResetProgress()
+	// Reset is now a UI-only operation; progress is managed server-side
 	progress.value = defaultProgress()
 }
 </script>

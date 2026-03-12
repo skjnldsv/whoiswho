@@ -5,42 +5,18 @@
 
 import type { TeamMember } from '../types.ts'
 import type { Challenge } from './useChallengeBuilder.ts'
+import type { GameProgress } from './useStorage.ts'
 
 import axios from '@nextcloud/axios'
 import { showError } from '@nextcloud/dialogs'
 import { generateOcsUrl } from '@nextcloud/router'
 import { computed, ref } from 'vue'
 import {
-	CLOSE_ANSWER_THRESHOLD,
-	FAST_ANSWER_BONUS_XP,
-	FAST_ANSWER_THRESHOLD,
-	HINT_COST_FIRST,
-	HINT_COST_SECOND,
 	MAX_LIVES,
 	PLACEHOLDER_PHOTO,
-	REVEAL_FRACTION,
-	REVEAL_MIN_COUNT,
-	STREAK_BONUS_INTERVAL,
-	STREAK_BONUS_XP,
+	XP_PER_LEVEL,
 } from '../constants.ts'
-import { levenshtein, normalizeText, shuffle } from '../utils/strings.ts'
-import { buildChallenge, generateMaskedName } from './useChallengeBuilder.ts'
-import {
-	applyXp,
-	computeLevelProgress,
-	recordClose,
-	recordCorrect,
-	recordSkip,
-	recordWrong,
-} from './useScoring.ts'
-import { pickNextPerson } from './useSpacedRepetition.ts'
-import {
-	type GameProgress,
-
-	getPersonProgress,
-	loadProgress,
-	saveProgress,
-} from './useStorage.ts'
+import { defaultProgress } from './useStorage.ts'
 
 // Re-export TeamMember so consumers can import it from here for backward compat
 export type { TeamMember } from '../types.ts'
@@ -65,12 +41,71 @@ interface OcsResponse<T> {
 	ocs: { data: T }
 }
 
+// Backend session shape
+interface BackendSession {
+	id: number
+	lives: number
+	streak: number
+	bestStreak: number
+	xpEarned: number
+	answered: number
+	correct: number
+	wrong: number
+	newlyMastered: string[]
+	active: boolean
+	hasChallenge: boolean
+}
+
+// Backend challenge response
+interface ChallengeResponse {
+	challenge?: Challenge
+	session?: BackendSession
+	gameOver?: boolean
+	error?: string
+}
+
+// Backend answer response
+interface AnswerResponse {
+	correct: boolean
+	close: boolean
+	correctAnswer: string
+	xp: number
+	leveledUp: boolean
+	streakBonus: number
+	responseTime: number
+	gameOver: boolean
+	session: BackendSession
+	progress: GameProgress
+	error?: string
+}
+
+// Backend skip response
+interface SkipResponse {
+	correctAnswer: string
+	session: BackendSession
+	progress: GameProgress
+	error?: string
+}
+
+// Backend hint response
+interface HintResponse {
+	hint?: string
+	revealedMask?: string | null
+	eliminatedOption?: string | null
+	session?: BackendSession
+	progress?: GameProgress
+	error?: string
+}
+
 /**
  * Central game engine composable.
- * Orchestrates spaced repetition, challenge building, scoring, and session state.
+ * All game logic (question generation, answer validation, scoring, streaks)
+ * is now handled by the backend. This composable is a thin client that
+ * makes API calls and updates the UI state accordingly.
  */
 export function useGameEngine() {
-	const progress = ref<GameProgress>(loadProgress())
+	// Local UI state backed by server data
+	const progress = ref<GameProgress>(defaultProgress())
 	const currentChallenge = ref<Challenge | null>(null)
 	const sessionStats = ref<SessionStats>({
 		answered: 0,
@@ -87,12 +122,8 @@ export function useGameEngine() {
 	const showingResult = ref(false)
 	const lastAnswerCorrect = ref(false)
 	const lastAnswerClose = ref(false)
-	const lastResponseTime = ref(0) // ms taken to answer the most recent challenge
-	const lastStreakBonus = ref(0) // XP bonus awarded for streak milestone (0 if none)
-	// Track last shown person to avoid showing the same person twice in a row
-	const lastPersonId = ref<number | null>(null)
-	// Track when the current challenge was shown, to measure response time
-	const challengeStartTime = ref(0)
+	const lastResponseTime = ref(0)
+	const lastStreakBonus = ref(0)
 
 	// Runtime team data — fetched from PHP backend on first load
 	const allMembersRaw = ref<TeamMember[]>([])
@@ -116,8 +147,21 @@ export function useGameEngine() {
 		}
 	}
 
-	// Kick off the initial fetch
+	/**
+	 * Fetch initial progress from backend.
+	 */
+	async function fetchProgress() {
+		try {
+			const { data } = await axios.get<OcsResponse<{ progress: GameProgress, session: BackendSession | null }>>(generateOcsUrl('apps/whoiswho/game/progress'))
+			updateProgressFromBackend(data.ocs.data.progress)
+		} catch {
+			// Silently ignore — will use defaults
+		}
+	}
+
+	// Kick off the initial fetches
 	fetchTeamMembers()
+	fetchProgress()
 
 	const allMembers = computed(() => allMembersRaw.value.filter((m) => m.photo && m.name && m.photo !== PLACEHOLDER_PHOTO))
 
@@ -128,292 +172,245 @@ export function useGameEngine() {
 
 	const totalCount = computed(() => allMembers.value.length)
 
-	const levelProgress = computed(() => computeLevelProgress(progress.value))
+	const levelProgress = computed(() => {
+		const level = progress.value.level
+		const previousThreshold = (level - 1) * XP_PER_LEVEL
+		const xpIntoCurrentLevel = Math.max(0, progress.value.xp - previousThreshold)
+		return Math.min(xpIntoCurrentLevel / XP_PER_LEVEL, 1)
+	})
+
+	/**
+	 * Update local progress from backend response.
+	 *
+	 * @param backendProgress The progress data from the backend API
+	 */
+	function updateProgressFromBackend(backendProgress: GameProgress) {
+		progress.value = backendProgress
+	}
+
+	/**
+	 * Update local session stats from backend session.
+	 *
+	 * @param session The session data from the backend API
+	 */
+	function updateSessionFromBackend(session: BackendSession) {
+		lives.value = session.lives
+		sessionStats.value = {
+			answered: session.answered,
+			correct: session.correct,
+			wrong: session.wrong,
+			streak: session.streak,
+			bestStreak: session.bestStreak,
+			xpEarned: session.xpEarned,
+			newlyMastered: session.newlyMastered,
+		}
+	}
 
 	/**
 	 * Reset session statistics and start a new session.
 	 */
-	function startSession() {
-		sessionStats.value = {
-			answered: 0,
-			correct: 0,
-			wrong: 0,
-			streak: 0,
-			bestStreak: 0,
-			xpEarned: 0,
-			newlyMastered: [],
+	async function startSession() {
+		try {
+			const { data } = await axios.post<OcsResponse<{ session: BackendSession, progress: GameProgress }>>(generateOcsUrl('apps/whoiswho/game/start'))
+			const result = data.ocs.data
+			updateProgressFromBackend(result.progress)
+			updateSessionFromBackend(result.session)
+			gameOver.value = false
+			showingResult.value = false
+			await nextChallenge()
+		} catch {
+			showError('Could not start game session. Please try again.')
 		}
-
-		// Restore persisted lives if a session was interrupted (e.g. force-close),
-		// otherwise start fresh so the exploit of force-closing to regain hearts is closed.
-		if (progress.value.sessionActive) {
-			lives.value = progress.value.currentLives
-		} else {
-			lives.value = MAX_LIVES
-			progress.value.currentLives = MAX_LIVES
-		}
-
-		gameOver.value = false
-		progress.value.sessionActive = true
-		progress.value.sessionsPlayed++
-		progress.value.lastPlayed = Date.now()
-		saveProgress(progress.value)
-		nextChallenge()
 	}
 
 	/**
-	 * Mark the session as inactive and persist the state.
-	 * Resets the current streak since it is session-specific.
-	 * Call this when a session ends (game over or user navigates away).
+	 * Mark the session as inactive.
 	 */
-	function endSession() {
-		progress.value.sessionActive = false
-		progress.value.currentStreak = 0
-		saveProgress(progress.value)
+	async function endSession() {
+		try {
+			const { data } = await axios.post<OcsResponse<{ session: BackendSession, progress: GameProgress }>>(generateOcsUrl('apps/whoiswho/game/end'))
+			const result = data.ocs.data
+			updateProgressFromBackend(result.progress)
+			updateSessionFromBackend(result.session)
+		} catch {
+			// Silently ignore
+		}
 	}
 
 	/**
-	 * Advance to the next challenge, or signal game-over when no person is available.
+	 * Advance to the next challenge by requesting it from the backend.
 	 */
-	function nextChallenge() {
+	async function nextChallenge() {
 		if (gameOver.value) {
 			return
 		}
 
-		const person = pickNextPerson(progress.value, allMembers.value, lastPersonId.value)
-		if (!person) {
-			gameOver.value = true
-			return
-		}
+		try {
+			const { data } = await axios.get<OcsResponse<ChallengeResponse>>(generateOcsUrl('apps/whoiswho/game/challenge'))
+			const result = data.ocs.data
 
-		lastPersonId.value = person.id
-		showingResult.value = false
-		currentChallenge.value = buildChallenge(person, progress.value, allMembers.value)
-		challengeStartTime.value = Date.now()
+			if (result.gameOver) {
+				gameOver.value = true
+				return
+			}
+
+			if (result.error) {
+				gameOver.value = true
+				return
+			}
+
+			if (result.challenge) {
+				currentChallenge.value = result.challenge
+				showingResult.value = false
+			}
+
+			if (result.session) {
+				updateSessionFromBackend(result.session)
+			}
+		} catch {
+			gameOver.value = true
+		}
 	}
 
 	/**
 	 * Submit an answer for the current challenge.
-	 * Returns true when the answer is correct (or it's a "meet" card).
+	 * The backend validates the answer and returns the result.
 	 *
 	 * @param answer The player's answer string
 	 */
-	function submitAnswer(answer: string): boolean {
+	async function submitAnswer(answer: string): Promise<boolean> {
 		if (!currentChallenge.value) {
 			return false
 		}
 
-		const challenge = currentChallenge.value
-		const isMeet = challenge.type === 'meet'
-
-		// Strip diacritics so answers are accent-agnostic (e.g. "Jose" matches "José")
-		const normalizedAnswer = normalizeText(answer)
-		const normalizedCorrect = normalizeText(challenge.correctAnswer)
-		const isCorrect = isMeet || normalizedAnswer === normalizedCorrect
-		// A "close" answer has Levenshtein distance ≤ threshold (catches typos)
-		const isClose = !isCorrect && !isMeet
-			&& normalizedAnswer.length > 0
-			&& levenshtein(normalizedAnswer, normalizedCorrect) <= CLOSE_ANSWER_THRESHOLD
-
-		// Measure how long the player took to answer
-		const responseTime = challengeStartTime.value > 0 ? Date.now() - challengeStartTime.value : 0
-		lastResponseTime.value = responseTime
-
-		// Update per-person response time stats (using running average over total answers)
-		const pp = getPersonProgress(progress.value, challenge.person.id)
-		pp.lastResponseTime = responseTime
-		const totalAnswers = pp.totalCorrect + pp.totalWrong + 1 // +1 for this answer (not yet recorded)
-		pp.avgResponseTime = pp.avgResponseTime === 0
-			? responseTime
-			: Math.round((pp.avgResponseTime * (totalAnswers - 1) + responseTime) / totalAnswers)
-
-		if (isCorrect) {
-			const { xp } = recordCorrect(
-				progress.value,
-				challenge.person.id,
-				challenge.type,
-				sessionStats.value.streak,
+		try {
+			const { data } = await axios.post<OcsResponse<AnswerResponse>>(
+				generateOcsUrl('apps/whoiswho/game/answer'),
+				{ answer },
 			)
-			sessionStats.value.answered++
-			sessionStats.value.correct++
-			sessionStats.value.streak++
-			sessionStats.value.xpEarned += xp
+			const result = data.ocs.data
 
-			// Award bonus XP for fast correct answers on timed challenges
-			if (challenge.timeLimit > 0 && responseTime > 0 && responseTime < challenge.timeLimit * FAST_ANSWER_THRESHOLD) {
-				applyXp(progress.value, FAST_ANSWER_BONUS_XP)
-				sessionStats.value.xpEarned += FAST_ANSWER_BONUS_XP
+			if (result.error) {
+				return false
 			}
 
-			// Award streak milestone bonus every STREAK_BONUS_INTERVAL consecutive correct answers
-			if (sessionStats.value.streak > 0 && sessionStats.value.streak % STREAK_BONUS_INTERVAL === 0) {
-				applyXp(progress.value, STREAK_BONUS_XP)
-				sessionStats.value.xpEarned += STREAK_BONUS_XP
-				lastStreakBonus.value = STREAK_BONUS_XP
-			} else {
-				lastStreakBonus.value = 0
+			lastAnswerCorrect.value = result.correct
+			lastAnswerClose.value = result.close
+			lastResponseTime.value = result.responseTime
+			lastStreakBonus.value = result.streakBonus
+
+			// Set the correctAnswer on the challenge for result display
+			if (currentChallenge.value) {
+				currentChallenge.value.correctAnswer = result.correctAnswer
 			}
 
-			if (sessionStats.value.streak > sessionStats.value.bestStreak) {
-				sessionStats.value.bestStreak = sessionStats.value.streak
-			}
+			updateProgressFromBackend(result.progress)
+			updateSessionFromBackend(result.session)
+			showingResult.value = true
 
-			if (pp && pp.stage === 4) {
-				sessionStats.value.newlyMastered.push(challenge.person.name)
-			}
-		} else if (isClose) {
-			const { xp } = recordClose(progress.value, challenge.person.id, challenge.type)
-			sessionStats.value.answered++
-			sessionStats.value.wrong++
-			sessionStats.value.streak = 0
-			sessionStats.value.xpEarned += xp
-			lastStreakBonus.value = 0
-		} else {
-			recordWrong(progress.value, challenge.person.id)
-			sessionStats.value.answered++
-			sessionStats.value.wrong++
-			sessionStats.value.streak = 0
-			lastStreakBonus.value = 0
-
-			lives.value--
-			progress.value.currentLives = lives.value
-			if (lives.value <= 0) {
+			if (result.gameOver) {
 				gameOver.value = true
-				endSession()
+				await endSession()
 			}
+
+			return result.correct
+		} catch {
+			return false
 		}
-
-		lastAnswerCorrect.value = isCorrect
-		lastAnswerClose.value = isClose
-		showingResult.value = true
-		saveProgress(progress.value)
-
-		return isCorrect
 	}
 
 	/**
-	 * Mark the current challenge as skipped (wrong but no life lost).
-	 * Used by the "I don't know" button.
+	 * Mark the current challenge as skipped.
 	 */
-	function skipAnswer() {
+	async function skipAnswer() {
 		if (!currentChallenge.value || showingResult.value) {
 			return
 		}
-		const challenge = currentChallenge.value
 
-		recordSkip(progress.value, challenge.person.id)
-		sessionStats.value.answered++
-		sessionStats.value.wrong++
-		sessionStats.value.streak = 0
+		try {
+			const { data } = await axios.post<OcsResponse<SkipResponse>>(generateOcsUrl('apps/whoiswho/game/skip'))
+			const result = data.ocs.data
 
-		lastAnswerCorrect.value = false
-		lastAnswerClose.value = false
-		showingResult.value = true
-		saveProgress(progress.value)
-	}
-
-	/**
-	 * Use the first hint: costs HINT_COST_FIRST XP, returns "title — department" or null
-	 * when the player can't afford it.
-	 */
-	function useHint(): string | null {
-		if (!currentChallenge.value || progress.value.xp < HINT_COST_FIRST) {
-			return null
-		}
-
-		applyXp(progress.value, -HINT_COST_FIRST)
-		sessionStats.value.xpEarned -= HINT_COST_FIRST
-		saveProgress(progress.value)
-
-		const person = currentChallenge.value.person
-		return `${person.title} — ${person.department}`
-	}
-
-	/**
-	 * Second-level hint for recall/type: reveals ~⅓ more letters.
-	 * Returns a new masked string or null when not applicable.
-	 */
-	function revealMoreLetters(): string | null {
-		if (!currentChallenge.value) {
-			return null
-		}
-		const type = currentChallenge.value.type
-		if (type !== 'recall' && type !== 'type') {
-			return null
-		}
-
-		const name = currentChallenge.value.person.name
-		// For 'type' there is no maskedName yet — generate a fresh base mask
-		const baseMask = currentChallenge.value.maskedName ?? generateMaskedName(name)
-
-		const hiddenIndices: number[] = []
-		for (let i = 0; i < baseMask.length; i++) {
-			if (baseMask[i] === '_') {
-				hiddenIndices.push(i)
+			if (result.error) {
+				return
 			}
-		}
-		if (hiddenIndices.length === 0) {
-			return baseMask
-		}
 
-		// Reveal ~⅓ of remaining hidden letters (minimum REVEAL_MIN_COUNT)
-		const revealCount = Math.max(REVEAL_MIN_COUNT, Math.ceil(hiddenIndices.length * REVEAL_FRACTION))
-		const toReveal = shuffle([...hiddenIndices]).slice(0, revealCount)
-		const chars = Array.from(baseMask)
-		for (const idx of toReveal) {
-			chars[idx] = name[idx]
+			// Set the correctAnswer on the challenge for result display
+			if (currentChallenge.value) {
+				currentChallenge.value.correctAnswer = result.correctAnswer
+			}
+
+			lastAnswerCorrect.value = false
+			lastAnswerClose.value = false
+			showingResult.value = true
+
+			updateProgressFromBackend(result.progress)
+			updateSessionFromBackend(result.session)
+		} catch {
+			// Silently ignore
 		}
-		return chars.join('')
 	}
 
 	/**
-	 * Second-level hint for recognize/pick-face: returns the name of a wrong
-	 * option to eliminate, or null when not applicable.
+	 * Use the first hint: costs XP, returns "title — department" or null.
 	 */
-	function eliminateWrongOption(): string | null {
-		if (!currentChallenge.value) {
-			return null
-		}
-		const challenge = currentChallenge.value
+	async function useHint(): Promise<string | null> {
+		try {
+			const { data } = await axios.post<OcsResponse<HintResponse>>(
+				generateOcsUrl('apps/whoiswho/game/hint'),
+				{ level: 1 },
+			)
+			const result = data.ocs.data
 
-		if (challenge.type === 'recognize' && challenge.options) {
-			const wrong = challenge.options.filter((o) => o !== challenge.correctAnswer)
-			if (wrong.length === 0) {
+			if (result.error) {
 				return null
 			}
-			return wrong[Math.floor(Math.random() * wrong.length)]
-		}
 
-		if (challenge.type === 'pick-face' && challenge.photoOptions) {
-			const wrong = challenge.photoOptions.filter((m) => m.name !== challenge.correctAnswer)
-			if (wrong.length === 0) {
-				return null
+			if (result.progress) {
+				updateProgressFromBackend(result.progress)
 			}
-			return wrong[Math.floor(Math.random() * wrong.length)].name
-		}
+			if (result.session) {
+				updateSessionFromBackend(result.session)
+			}
 
-		return null
+			return result.hint ?? null
+		} catch {
+			return null
+		}
 	}
 
 	/**
-	 * Perform the second hint (costs HINT_COST_SECOND XP).
+	 * Second-level hint.
 	 * Returns what was revealed so App.vue can store and display it.
 	 */
-	function useSecondHint(): { revealedMask: string | null, eliminatedOption: string | null } {
+	async function useSecondHint(): Promise<{ revealedMask: string | null, eliminatedOption: string | null }> {
 		const empty = { revealedMask: null, eliminatedOption: null }
-		if (!currentChallenge.value || progress.value.xp < HINT_COST_SECOND) {
+
+		try {
+			const { data } = await axios.post<OcsResponse<HintResponse>>(
+				generateOcsUrl('apps/whoiswho/game/hint'),
+				{ level: 2 },
+			)
+			const result = data.ocs.data
+
+			if (result.error) {
+				return empty
+			}
+
+			if (result.progress) {
+				updateProgressFromBackend(result.progress)
+			}
+			if (result.session) {
+				updateSessionFromBackend(result.session)
+			}
+
+			return {
+				revealedMask: result.revealedMask ?? null,
+				eliminatedOption: result.eliminatedOption ?? null,
+			}
+		} catch {
 			return empty
 		}
-
-		applyXp(progress.value, -HINT_COST_SECOND)
-		sessionStats.value.xpEarned -= HINT_COST_SECOND
-		saveProgress(progress.value)
-
-		const type = currentChallenge.value.type
-		if (type === 'recall' || type === 'type') {
-			return { revealedMask: revealMoreLetters(), eliminatedOption: null }
-		}
-		return { revealedMask: null, eliminatedOption: eliminateWrongOption() }
 	}
 
 	return {
