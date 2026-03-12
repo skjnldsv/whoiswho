@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import GameScreen from './components/GameScreen.vue'
 import LeaderboardScreen from './components/LeaderboardScreen.vue'
 import ResultsScreen from './components/ResultsScreen.vue'
@@ -195,13 +195,6 @@ function handleReset() {
 		lastPlayed: 0,
 	}
 }
-
-// End game when lives run out
-watch(lives, (val) => {
-	if (val <= 0 && screen.value === 'game') {
-		endGame()
-	}
-})
 </script>
 
 <style>
