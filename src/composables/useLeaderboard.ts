@@ -27,6 +27,11 @@ interface OcsResponse<T> {
 	ocs: { data: T }
 }
 
+export interface SessionToken {
+	token: string
+	issuedAt: number
+}
+
 /**
  *
  */
@@ -57,15 +62,38 @@ export function useLeaderboard() {
 	}
 
 	/**
+	 * Fetch a time-limited HMAC session token from the server.
+	 * The token must be passed to submitScore to prove the score
+	 * originates from a real game session.
+	 */
+	async function getSessionToken(): Promise<SessionToken | null> {
+		try {
+			const { data } = await axios.get<OcsResponse<SessionToken>>(generateOcsUrl('apps/whoiswho/leaderboard/token'))
+			return data.ocs.data
+		} catch {
+			// Silently ignore — score submission will be rejected without a token
+			return null
+		}
+	}
+
+	/**
 	 *
 	 * @param xpEarned The XP score to submit
+	 * @param sessionToken The session token issued by the server at session start
 	 */
-	async function submitScore(xpEarned: number): Promise<void> {
+	async function submitScore(xpEarned: number, sessionToken: SessionToken | null): Promise<void> {
 		if (xpEarned <= 0) {
 			return
 		}
+		if (!sessionToken) {
+			return
+		}
 		try {
-			await axios.post(generateOcsUrl('apps/whoiswho/leaderboard/score'), { score: xpEarned })
+			await axios.post(generateOcsUrl('apps/whoiswho/leaderboard/score'), {
+				score: xpEarned,
+				token: sessionToken.token,
+				issuedAt: sessionToken.issuedAt,
+			})
 		} catch {
 			// Silently ignore — leaderboard submission is best-effort
 		}
@@ -78,6 +106,7 @@ export function useLeaderboard() {
 		error,
 		currentUser,
 		fetchScores,
+		getSessionToken,
 		submitScore,
 	}
 }

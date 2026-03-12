@@ -53,6 +53,8 @@
 </template>
 
 <script setup lang="ts">
+import type { SessionToken } from './composables/useLeaderboard.ts'
+
 import { ref, watch } from 'vue'
 import GameScreen from './components/GameScreen.vue'
 import LeaderboardScreen from './components/LeaderboardScreen.vue'
@@ -67,8 +69,9 @@ const hintText = ref<string | null>(null)
 const hintLevel = ref(0)
 const eliminatedOptions = ref<string[]>([])
 const revealedMask = ref<string | null>(null)
+const sessionToken = ref<SessionToken | null>(null)
 
-const { submitScore } = useLeaderboard()
+const { submitScore, getSessionToken } = useLeaderboard()
 
 const {
 	progress,
@@ -98,11 +101,12 @@ const {
 /**
  *
  */
-function startGame() {
+async function startGame() {
 	hintText.value = null
 	hintLevel.value = 0
 	eliminatedOptions.value = []
 	revealedMask.value = null
+	sessionToken.value = await getSessionToken()
 	startSession()
 	screen.value = 'game'
 }
@@ -145,8 +149,9 @@ function endGame() {
 	// Submit this session's XP to the leaderboard
 	const xp = sessionStats.value.xpEarned
 	if (xp > 0) {
-		submitScore(xp)
+		submitScore(xp, sessionToken.value)
 	}
+	sessionToken.value = null
 	hintText.value = null
 	hintLevel.value = 0
 	eliminatedOptions.value = []
