@@ -1,31 +1,63 @@
-# Nextcloud App Tutorial
+# Who Is Who
 
-[![PHPUnit GitHub Action](https://github.com/nextcloud/app-tutorial/workflows/PHPUnit/badge.svg)](https://github.com/nextcloud/app-tutorial/actions?query=workflow%3APHPUnit)
-[![Node GitHub Action](https://github.com/nextcloud/app-tutorial/workflows/Node/badge.svg)](https://github.com/nextcloud/app-tutorial/actions?query=workflow%3ANode)
-[![Lint GitHub Action](https://github.com/nextcloud/app-tutorial/workflows/Lint/badge.svg)](https://github.com/nextcloud/app-tutorial/actions?query=workflow%3ALint)
+[![PHPUnit](https://github.com/skjnldsv/whoiswho/workflows/PHPUnit/badge.svg)](https://github.com/skjnldsv/whoiswho/actions?query=workflow%3APHPUnit)
+[![Node](https://github.com/skjnldsv/whoiswho/workflows/Node/badge.svg)](https://github.com/skjnldsv/whoiswho/actions?query=workflow%3ANode)
+[![Lint](https://github.com/skjnldsv/whoiswho/workflows/Lint/badge.svg)](https://github.com/skjnldsv/whoiswho/actions?query=workflow%3ALint)
 
-This is the [tutorial app](https://docs.nextcloud.com/server/latest/developer_manual/app_development/tutorial.html) which shows how to develop a very simple notes app.
- 
-## Try it 
-To install it change into your Nextcloud's apps directory:
+A Nextcloud app for managing and displaying user information.
 
-    cd nextcloud/apps
+---
 
-Then clone this repository into a folder named **notestutorial**¹:
+## Installation
 
-    git clone https://github.com/nextcloud/app-tutorial.git notestutorial
+Navigate to your Nextcloud apps directory:
 
-Then install the dependencies using:
+```bash
+cd nextcloud/apps
+```
 
-    make composer
+Clone this repository into a folder named **whoiswho**¹:
 
-¹ It is important that the directory is named exactly like the app ID (see `appinfo/info.xml`).
+```bash
+git clone https://github.com/skjnldsv/whoiswho.git whoiswho
+```
 
-## Frontend development
+Install backend dependencies:
 
-The app tutorial also shows the very basic implementation of an app frontend using [Vue.js](https://vuejs.org/). To build the frontend code after doing changes to its source in `src/` requires to have Node and npm installed.
+```bash
+make composer
+```
 
-- 👩‍💻 Run `make dev-setup` to install the frontend dependencies
-- 🏗 To build the Javascript whenever you make changes, run `make build-js`
+¹ *The directory name must match the app ID defined in `appinfo/info.xml`.*
 
-To continuously run the build when editing source files you can make use of the `make watch-js` command.
+---
+
+## Development
+
+### Frontend
+
+The frontend is built with [Vue.js](https://vuejs.org/).
+
+**Setup:**
+
+```bash
+make dev-setup
+```
+
+**Build:**
+
+```bash
+make build-js
+```
+
+**Watch mode** (auto-rebuild on file changes):
+
+```bash
+make watch-js
+```
+
+---
+
+## License
+
+See [LICENSE](LICENSE) for details.
