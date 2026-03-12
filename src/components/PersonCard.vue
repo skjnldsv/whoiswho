@@ -3,37 +3,19 @@
   - SPDX-License-Identifier: AGPL-3.0-or-later
   -->
 <template>
-	<div class="person-card" :class="{ 'card-flip': flipped, 'card-correct': correct, 'card-wrong': wrong }">
-		<div class="card-inner">
-			<div class="card-front">
-				<div class="photo-frame">
-					<img
-						:src="person.photo"
-						:alt="showName ? person.name : 'Team member'"
-						class="photo"
-						@error="onImgError">
-					<div v-if="fallbackInitials" class="photo-fallback">
-						{{ fallbackInitials }}
-					</div>
-				</div>
-				<div v-if="showName" class="card-info">
-					<h3 class="name">
-						{{ person.name }}
-					</h3>
-					<p class="title">
-						{{ person.title }}
-					</p>
-					<span class="dept-badge">{{ person.department }}</span>
-				</div>
+	<div class="person-card" :class="{ 'card-correct': correct, 'card-wrong': wrong, 'card-shake': wrong }">
+		<div class="photo-frame">
+			<img
+				:src="person.photo"
+				:alt="showInfo ? person.name : 'Team member'"
+				class="photo"
+				@error="onImgError">
+			<div v-if="fallbackInitials" class="photo-fallback">
+				{{ fallbackInitials }}
 			</div>
-			<div class="card-back">
-				<div class="photo-frame small">
-					<img
-						:src="person.photo"
-						:alt="person.name"
-						class="photo"
-						@error="onImgError">
-				</div>
+		</div>
+		<Transition name="info-slide">
+			<div v-if="showInfo" class="card-info">
 				<h3 class="name">
 					{{ person.name }}
 				</h3>
@@ -42,7 +24,7 @@
 				</p>
 				<span class="dept-badge">{{ person.department }}</span>
 			</div>
-		</div>
+		</Transition>
 	</div>
 </template>
 
@@ -54,12 +36,14 @@ import { computed, ref } from 'vue'
 const props = defineProps<{
 	person: TeamMember
 	showName?: boolean
-	flipped?: boolean
 	correct?: boolean
 	wrong?: boolean
 }>()
 
 const imgFailed = ref(false)
+
+/** Show name+info when explicitly requested (meet), or when result is revealed */
+const showInfo = computed(() => props.showName || props.correct || props.wrong)
 
 const fallbackInitials = computed(() => {
 	if (!imgFailed.value) {
@@ -82,72 +66,41 @@ function onImgError() {
 </script>
 
 <style scoped>
+/* ── Card shell ──────────────────────────────────────────────*/
 .person-card {
-	perspective: 800px;
-	width: min(220px, 90%);
-	height: min(300px, 44vh);
 	margin: 0 auto;
-	flex-shrink: 0;
-}
-
-.card-inner {
-	position: relative;
-	width: 100%;
-	height: 100%;
-	transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-	transform-style: preserve-3d;
-}
-
-.card-flip .card-inner {
-	transform: rotateY(180deg);
-}
-
-.card-front,
-.card-back {
-	position: absolute;
-	inset: 0;
-	backface-visibility: hidden;
 	border-radius: var(--border-radius-container-large);
-	background: var(--whw-card-bg, var(--color-main-background));
-	border: 1px solid var(--color-border-dark);
-	box-shadow: 0 4px 20px var(--color-box-shadow);
+	background: var(--color-primary-element);
+	box-shadow: 0 4px 24px var(--color-box-shadow);
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	padding: 16px;
+	padding: 24px;
+	gap: 16px;
+	transition: box-shadow 0.3s ease;
 	overflow: hidden;
+	flex-shrink: 0;
 }
 
-.card-back {
-	transform: rotateY(180deg);
-	justify-content: center;
-	gap: 12px;
-}
-
-.card-correct .card-inner {
+.card-correct {
 	box-shadow: 0 0 0 4px var(--color-element-success), 0 8px 32px var(--color-success);
-	border-radius: var(--border-radius-container-large);
 }
 
-.card-wrong .card-inner {
+.card-wrong {
 	box-shadow: 0 0 0 4px var(--color-element-error), 0 8px 32px var(--color-error);
-	border-radius: var(--border-radius-container-large);
 }
 
+/* ── Avatar ──────────────────────────────────────────────────*/
 .photo-frame {
 	width: min(150px, 38vw);
 	height: min(150px, 38vw);
 	border-radius: 50%;
 	overflow: hidden;
-	border: 4px solid rgba(102, 126, 234, 0.4);
+	border: 4px solid white;
 	flex-shrink: 0;
 	position: relative;
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.photo-frame.small {
-	width: min(80px, 22vw);
-	height: min(80px, 22vw);
+	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
 }
 
 .photo {
@@ -168,43 +121,76 @@ function onImgError() {
 	color: white;
 }
 
+/* ── Info panel (slides up on reveal) ───────────────────────*/
 .card-info {
+	width: 100%;
 	text-align: center;
-	margin-top: 10px;
-	flex: 1;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 4px;
-	min-height: 0;
-	overflow: hidden;
+	gap: 6px;
 }
 
 .name {
 	margin: 0;
-	font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+	font-size: clamp(1rem, 2.5vw, 1.25rem);
 	font-weight: 700;
-	color: var(--whw-card-text, #1a1a2e);
+	color: white;
 	line-height: 1.3;
-	text-align: center;
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 .title {
 	margin: 0;
-	font-size: clamp(0.75rem, 2vw, 0.85rem);
-	color: var(--whw-card-title, var(--color-text-maxcontrast));
+	font-size: clamp(0.78rem, 2vw, 0.88rem);
+	color: rgba(255, 255, 255, 0.85);
 	line-height: 1.4;
-	text-align: center;
 }
 
 .dept-badge {
 	display: inline-block;
-	padding: 3px 10px;
+	padding: 4px 12px;
 	border-radius: var(--border-radius-pill);
-	background: var(--color-primary-element);
-	color: var(--color-primary-element-text);
+	background: rgba(255, 255, 255, 0.2);
+	color: white;
 	font-size: 0.72rem;
 	font-weight: 600;
-	letter-spacing: 0.02em;
+	letter-spacing: 0.03em;
+	margin-top: 2px;
+}
+
+/* ── Info slide-up transition ────────────────────────────────*/
+.info-slide-enter-active {
+	transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.info-slide-leave-active {
+	transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.info-slide-enter-from {
+	opacity: 0;
+	transform: translateY(20px);
+}
+
+.info-slide-leave-to {
+	opacity: 0;
+	transform: translateY(10px);
+}
+
+/* ── Shake on wrong ──────────────────────────────────────────*/
+.card-shake {
+	animation: cardShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes cardShake {
+	0%,
+	100% { transform: translateX(0); }
+	15%  { transform: translateX(-8px) rotate(-1deg); }
+	30%  { transform: translateX(8px) rotate(1deg); }
+	45%  { transform: translateX(-6px) rotate(-0.5deg); }
+	60%  { transform: translateX(6px) rotate(0.5deg); }
+	75%  { transform: translateX(-3px); }
+	90%  { transform: translateX(3px); }
 }
 </style>

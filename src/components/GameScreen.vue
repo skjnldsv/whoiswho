@@ -18,18 +18,24 @@
 		</div>
 
 		<!-- ── Two-column body ── -->
-		<div v-if="currentChallenge" class="game-body">
+		<div
+			v-if="currentChallenge"
+			class="game-body"
+			:class="{ 'game-body--meet-pending': currentChallenge.type === 'meet' && !showingResult }">
 			<!-- LEFT: photo card (animates per challenge) -->
 			<div class="card-column">
 				<Transition name="card-fade" mode="out-in">
 					<div :key="currentChallenge.seq" class="card-wrapper">
-						<span class="stage-tag" :class="currentChallenge.type.replace('-', '_')">
-							{{ stageLabels[currentChallenge.type] }}
-						</span>
 						<!-- pick-face: show name as the clue, not a photo -->
 						<div v-if="currentChallenge.type === 'pick-face'" class="name-badge">
 							<div class="name-badge-avatar">
-								{{ currentChallenge.person.name.charAt(0) }}
+								<img
+									v-if="showingResult && !pickFacePhotoFailed"
+									:src="currentChallenge.person.photo"
+									:alt="currentChallenge.person.name"
+									class="name-badge-photo"
+									@error="onPickFacePhotoError">
+								<span v-else>{{ currentChallenge.person.name.charAt(0) }}</span>
 							</div>
 							<h2 class="name-badge-name">
 								{{ currentChallenge.person.name }}
@@ -45,9 +51,16 @@
 							v-else
 							:person="currentChallenge.person"
 							:showName="currentChallenge.type === 'meet'"
-							:flipped="showingResult && currentChallenge.type !== 'meet'"
 							:correct="showingResult && lastAnswerCorrect"
 							:wrong="showingResult && !lastAnswerCorrect" />
+						<!-- "Got it" button lives below the card for meet challenges -->
+						<button
+							v-if="currentChallenge.type === 'meet' && !showingResult"
+							class="btn-action btn-action--meet"
+							:disabled="answered"
+							@click="handleMeet">
+							Got it <kbd class="kbd-gap">↵</kbd>
+						</button>
 					</div>
 				</Transition>
 			</div>
@@ -79,10 +92,10 @@
 							? (progress.xp < 10 ? 'Need 10 XP for a hint' : 'Use hint (-10 XP)')
 							: (progress.xp < 15 ? 'Need 15 XP for more help' : 'Reveal more (-15 XP)')"
 						@click="requestHint">
-						💡 {{ hintLevel === 0 ? 'Hint' : 'More help' }} <kbd>H</kbd>
+						💡 {{ hintLevel === 0 ? 'Hint' : 'More help' }} <kbd class="kbd-gap">H</kbd>
 					</button>
 					<button class="btn-skip" @click="handleSkip">
-						🤷 I don't know <kbd>Esc</kbd>
+						🤷 I don't know <kbd class="kbd-gap">Esc</kbd>
 					</button>
 				</div>
 
@@ -100,6 +113,11 @@
 								'result-close': lastAnswerClose && !lastAnswerCorrect,
 								'result-wrong': !lastAnswerCorrect && !lastAnswerClose,
 							}">
+							<img
+								v-if="currentChallenge.person.photo"
+								:src="currentChallenge.person.photo"
+								:alt="currentChallenge.person.name"
+								class="result-avatar">
 							<span class="feedback-icon">{{ lastAnswerCorrect ? '✨' : lastAnswerClose ? '🎯' : '😕' }}</span>
 							<span v-if="lastAnswerCorrect">Correct! +{{ xpEarned }} XP</span>
 							<span v-else-if="lastAnswerClose">So close! It's <strong>{{ currentChallenge.correctAnswer }}</strong> (+{{ xpEarned }} XP)</span>
@@ -107,19 +125,12 @@
 						</div>
 					</Transition>
 					<button
-						v-if="currentChallenge.type === 'meet' && !showingResult"
-						class="btn-action"
-						:disabled="answered"
-						@click="handleMeet">
-						Got it <kbd>↵</kbd>
-					</button>
-					<button
-						v-else-if="showingResult && currentChallenge.type !== 'meet'"
+						v-if="showingResult && currentChallenge.type !== 'meet'"
 						class="btn-action"
 						:class="{ 'btn-action--auto-advancing': autoAdvancing }"
 						:style="autoAdvancing ? { '--auto-progress-duration': AUTO_SKIP_DELAY_MS + 'ms' } : {}"
 						@click="handleNext">
-						{{ gameOver ? '📊 See Results' : 'Next' }} <kbd>↵</kbd>
+						{{ gameOver ? '📊 See Results' : 'Next' }} <kbd class="kbd-gap">↵</kbd>
 					</button>
 				</div>
 			</div>
@@ -189,14 +200,6 @@ const emit = defineEmits<{
 	end: []
 }>()
 
-const stageLabels: Record<string, string> = {
-	meet: '👋 Meet',
-	recognize: '🎯 Recognize',
-	'pick-face': '🖼️ Pick the Face',
-	recall: '🧩 Recall',
-	type: '✍️ Master',
-}
-
 const xpEarned = ref(0)
 const xpPopup = ref(0)
 const xpPopupKey = ref(0)
@@ -208,6 +211,8 @@ const answered = ref(false)
 const advancing = ref(false)
 // Whether auto-advancing is in progress (drives CSS gradient fill on Next button)
 const autoAdvancing = ref(false)
+// Whether the pick-face reveal photo failed to load
+const pickFacePhotoFailed = ref(false)
 let autoSkipTimeoutId: ReturnType<typeof setTimeout> | null = null
 const AUTO_SKIP_DELAY_MS = 3000 // ms before auto-advancing to next challenge
 
@@ -227,6 +232,7 @@ watch(() => props.currentChallenge, () => {
 	answered.value = false
 	advancing.value = false
 	xpEarned.value = 0
+	pickFacePhotoFailed.value = false
 	clearAutoSkipTimers()
 })
 
@@ -368,6 +374,13 @@ function confettiStyle(i: number) {
 	}
 }
 
+/**
+ * Mark pick-face reveal photo as failed so we fall back to the initial
+ */
+function onPickFacePhotoError() {
+	pickFacePhotoFailed.value = true
+}
+
 // ── Keyboard shortcuts ────────────────────────────────────────────────
 
 // Enter → Got it (meet) or advance when showing result
@@ -423,13 +436,28 @@ useHotKey('h', () => {
 	min-height: 0;
 	display: flex;
 	overflow: hidden;
+	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Meet-pending: center the card, hide the right column */
+.game-body--meet-pending {
+	justify-content: center;
+}
+
+.game-body--meet-pending .card-column {
+	/* Wide enough to comfortably display the business card + "Got it" button */
+	flex: 0 0 min(360px, 90%);
+	border-inline-end: none;
+}
+
+.game-body--meet-pending .challenge-column {
+	display: none;
 }
 
 /* ── Left: photo card ──────────────────────────────────────────────*/
 .card-column {
 	flex: 0 0 min(300px, 42%);
 	display: flex;
-	align-items: center;
 	justify-content: center;
 	padding: 20px 16px;
 	border-inline-end: 1px solid var(--color-border);
@@ -448,6 +476,7 @@ useHotKey('h', () => {
 .challenge-column {
 	flex: 1;
 	min-width: 0;
+	max-width: 500px;
 	display: flex;
 	flex-direction: column;
 	padding: 20px 24px 16px;
@@ -473,28 +502,6 @@ useHotKey('h', () => {
 .flex-spacer {
 	flex: 1;
 }
-
-/* ── Stage badge ──────────────────────────────────────────────────*/
-.stage-tag {
-	display: inline-flex;
-	align-items: center;
-	padding: 4px 14px;
-	border-radius: var(--border-radius-pill);
-	font-size: 0.78rem;
-	font-weight: 700;
-	letter-spacing: 0.05em;
-	text-transform: uppercase;
-}
-
-.stage-tag.meet        { background: var(--color-primary-element); color: var(--color-primary-element-text); }
-
-.stage-tag.recognize   { background: #9b59b6; color: #fff; }
-
-.stage-tag.pick_face   { background: #16a085; color: #fff; }
-
-.stage-tag.recall      { background: #e67e22; color: #fff; }
-
-.stage-tag.type        { background: #e74c3c; color: #fff; }
 
 /* ── Hint ──────────────────────────────────────────────────────*/
 .hint-bubble {
@@ -569,15 +576,26 @@ kbd {
 	line-height: 1.4;
 }
 
+/* Add a small gap between button text and the hotkey badge */
+.kbd-gap {
+	margin-inline-start: 4px;
+}
+
 /* ── Action area ─────────────────────────────────────────────────*/
 .action-area {
 	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	position: relative;
+	/* Always reserve the button footprint so the result banner doesn't shift layout */
+	min-height: var(--clickable-area-large, 44px);
 }
 
 .result-msg {
+	position: absolute;
+	bottom: calc(100% + 8px);
+	left: 0;
+	right: 0;
 	display: flex;
 	align-items: center;
 	gap: 10px;
@@ -585,6 +603,16 @@ kbd {
 	border-radius: var(--border-radius-element);
 	font-size: 0.95rem;
 	font-weight: 600;
+}
+
+.result-avatar {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	object-fit: cover;
+	flex-shrink: 0;
+	border: 2px solid currentColor;
+	opacity: 0.9;
 }
 
 .result-correct {
@@ -628,6 +656,11 @@ kbd {
 	align-items: center;
 	justify-content: center;
 	box-sizing: border-box;
+}
+
+/* "Got it" button below the card for meet challenges */
+.btn-action--meet {
+	max-width: 300px;
 }
 
 .btn-action:hover:not(:disabled) { background: var(--color-primary-element-hover); }
@@ -726,6 +759,14 @@ kbd {
 	font-size: 1.6rem;
 	font-weight: 700;
 	flex-shrink: 0;
+	overflow: hidden;
+}
+
+.name-badge-photo {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
 }
 
 .name-badge-name {

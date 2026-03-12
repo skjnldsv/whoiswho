@@ -9,13 +9,13 @@
 				<span class="stat-icon">⭐</span>
 				<span class="stat-label">Level {{ level }}</span>
 			</div>
+			<div class="stat stat--right">
+				<span class="stat-icon">✅</span>
+				<span class="stat-value">{{ mastered }}/{{ total }}</span>
+			</div>
 			<div class="stat">
 				<span class="stat-icon">🔥</span>
 				<span class="stat-value">{{ streak }}</span>
-			</div>
-			<div class="stat">
-				<span class="stat-icon">✅</span>
-				<span class="stat-value">{{ mastered }}/{{ total }}</span>
 			</div>
 			<div class="lives">
 				<span
@@ -69,6 +69,11 @@ defineProps<{
 	font-size: 0.9rem;
 	font-weight: 600;
 	color: var(--color-main-text);
+}
+
+/* Push streak + lives to the right */
+.stat--right {
+	margin-inline-start: auto;
 }
 
 .stat-icon {
