@@ -21,7 +21,7 @@ use OCP\IRequest;
 
 class TeamController extends OCSController {
 	private const CACHE_KEY = 'team_members';
-	private const CACHE_TTL = 3600; // 1 hour
+	private const CACHE_TTL = 43200; // 12 hours
 
 	private ?ICache $cache;
 
