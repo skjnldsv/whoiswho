@@ -271,7 +271,7 @@ watch(() => props.showingResult, (showing) => {
 		}
 
 		if (props.lastAnswerCorrect && props.currentChallenge.type === 'meet') {
-			// Auto-advance meet cards after a short pause
+			// Auto-advance meet cards immediately to skip the confusing in-between screen
 			setTimeout(() => {
 				if (advancing.value) {
 					return
@@ -282,7 +282,7 @@ watch(() => props.showingResult, (showing) => {
 				} else {
 					emit('next')
 				}
-			}, 800)
+			}, 0)
 		} else if (props.currentChallenge.type !== 'meet') {
 			// Auto-skip: fill Next button with a gradient over AUTO_SKIP_DELAY_MS
 			autoAdvancing.value = true
