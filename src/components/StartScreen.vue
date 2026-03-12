@@ -109,6 +109,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useLeaderboard } from '../composables/useLeaderboard'
+import { rankLabel } from '../utils/strings'
 import type { TeamMember } from '../composables/useGameEngine'
 import type { GameProgress } from '../composables/useStorage'
 
@@ -136,13 +137,6 @@ const xp = computed(() => props.progress.xp)
 const { allTime, weekly, loading: lbLoading, error: lbError, currentUser, fetchScores } = useLeaderboard()
 const lbTab = ref<'weekly' | 'alltime'>('weekly')
 const currentList = computed(() => lbTab.value === 'weekly' ? weekly.value : allTime.value)
-
-function rankLabel(i: number): string {
-	if (i === 0) return '🥇'
-	if (i === 1) return '🥈'
-	if (i === 2) return '🥉'
-	return `#${i + 1}`
-}
 
 onMounted(fetchScores)
 </script>
@@ -333,7 +327,7 @@ h1 {
 
 .lb-widget-header h3 {
 	margin: 0;
-	text-align: left;
+	text-align: start;
 }
 
 .btn-link {

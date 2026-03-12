@@ -5,31 +5,29 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+declare(strict_types=1);
+
 namespace OCA\WhoIsWho\Controller;
 
 use OCA\WhoIsWho\AppInfo\Application;
-use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\Attribute\ApiRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
-use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
-use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\OCSController;
 use OCP\Http\Client\IClientService;
 use OCP\IRequest;
 
-class TeamController extends Controller {
-	private IClientService $clientService;
-
-	public function __construct(IRequest $request, IClientService $clientService) {
+class TeamController extends OCSController {
+	public function __construct(
+		IRequest $request,
+		private IClientService $clientService,
+	) {
 		parent::__construct(Application::APP_ID, $request);
-		$this->clientService = $clientService;
 	}
 
-	/**
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 */
 	#[NoAdminRequired]
-	#[NoCSRFRequired]
-	public function index(): JSONResponse {
+	#[ApiRoute(verb: 'GET', url: '/team')]
+	public function index(): DataResponse {
 		$client = $this->clientService->newClient();
 		try {
 			$response = $client->get('https://nextcloud.com/team/', [
@@ -38,11 +36,11 @@ class TeamController extends Controller {
 			]);
 			$html = (string) $response->getBody();
 		} catch (\Exception $e) {
-			return new JSONResponse(['error' => 'Failed to fetch team page: ' . $e->getMessage()], 503);
+			return new DataResponse(['error' => 'Failed to fetch team page: ' . $e->getMessage()], 503);
 		}
 
 		$members = $this->parseTeamPage($html);
-		return new JSONResponse($members);
+		return new DataResponse($members);
 	}
 
 	private function parseTeamPage(string $html): array {

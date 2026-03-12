@@ -47,99 +47,15 @@
 			<div class="challenge-column">
 				<!-- Challenge input (animates per challenge) -->
 				<Transition name="fade" mode="out-in">
-					<div :key="currentChallenge.seq" class="input-area" :class="{ 'pick-face': currentChallenge.type === 'pick-face' }">
-						<!-- Meet: see and remember -->
-						<div v-if="currentChallenge.type === 'meet'" class="meet-area">
-							<p class="prompt">Remember this person!</p>
-							<p class="sub-prompt">Name, title, and department — then click Got it.</p>
-						</div>
-
-						<!-- Recognize: multiple choice -->
-						<div v-else-if="currentChallenge.type === 'recognize'" class="choice-area">
-							<p class="prompt">Who is this person?</p>
-							<div class="choice-grid">
-								<button v-for="option in currentChallenge.options"
-									:key="option"
-									class="choice-btn"
-									:class="{
-										correct: showingResult && option === currentChallenge.correctAnswer,
-										wrong: showingResult && chosenAnswer === option && option !== currentChallenge.correctAnswer,
-										disabled: showingResult,
-										eliminated: !showingResult && eliminatedOptions.includes(option),
-									}"
-									:disabled="showingResult || (!showingResult && eliminatedOptions.includes(option))"
-									@click="handleChoice(option)">
-									{{ option }}
-								</button>
-							</div>
-						</div>
-
-						<!-- Pick-face: choose the photo that matches the name -->
-						<div v-else-if="currentChallenge.type === 'pick-face'" class="pick-face-area">
-							<p class="prompt">Find this person's face:</p>
-							<div class="face-grid">
-								<button v-for="member in currentChallenge.photoOptions"
-									:key="member.id"
-									class="face-option"
-									:class="{
-										correct: showingResult && member.name === currentChallenge.correctAnswer,
-										wrong: showingResult && chosenAnswer === member.name && member.name !== currentChallenge.correctAnswer,
-										disabled: showingResult,
-										eliminated: !showingResult && eliminatedOptions.includes(member.name),
-									}"
-									:disabled="showingResult || (!showingResult && eliminatedOptions.includes(member.name))"
-									@click="handleChoice(member.name)">
-									<img :src="member.photo" :alt="showingResult ? member.name : ''" class="face-option-img" />
-									<span v-if="showingResult && member.name === currentChallenge.correctAnswer" class="face-correct-label">✓ {{ member.name }}</span>
-								</button>
-							</div>
-						</div>
-
-						<!-- Recall: fill in blanks -->
-						<div v-else-if="currentChallenge.type === 'recall'" class="recall-area">
-							<p class="prompt">Complete the name:</p>
-							<p class="masked-name">{{ revealedMask || currentChallenge.maskedName }}</p>
-							<div class="type-input-row">
-								<input ref="recallInput"
-									v-model="typedAnswer"
-									type="text"
-									class="name-input"
-									placeholder="Type the full name…"
-									:disabled="showingResult"
-									autocomplete="off"
-									@keydown.enter="handleTypedAnswer">
-								<button class="btn-submit"
-									:disabled="showingResult || !typedAnswer.trim()"
-									:aria-label="t('whoiswho', 'Submit answer')"
-									@click="handleTypedAnswer">
-									✓
-								</button>
-							</div>
-						</div>
-
-						<!-- Type: free recall -->
-						<div v-else-if="currentChallenge.type === 'type'" class="type-area">
-							<p class="prompt">Type this person's full name:</p>
-							<div v-if="revealedMask" class="hint-bubble hint-bubble--inline">
-								🔤 {{ revealedMask }}
-							</div>
-							<div class="type-input-row">
-								<input ref="typeInput"
-									v-model="typedAnswer"
-									type="text"
-									class="name-input"
-									placeholder="Full name…"
-									:disabled="showingResult"
-									autocomplete="off"
-									@keydown.enter="handleTypedAnswer">
-								<button class="btn-submit"
-									:disabled="showingResult || !typedAnswer.trim()"
-									:aria-label="t('whoiswho', 'Submit answer')"
-									@click="handleTypedAnswer">
-									✓
-								</button>
-							</div>
-						</div>
+					<div :key="currentChallenge.seq"
+						class="input-area"
+						:class="{ 'pick-face': currentChallenge.type === 'pick-face' }">
+						<ChallengeInput
+							:challenge="currentChallenge"
+							:showing-result="showingResult"
+							:eliminated-options="eliminatedOptions"
+							:revealed-mask="revealedMask ?? null"
+							@answer="handleAnswerFromInput" />
 					</div>
 				</Transition>
 
@@ -220,12 +136,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, useTemplateRef } from 'vue'
+import { ref, watch } from 'vue'
 import { t } from '@nextcloud/l10n'
 import { useHotKey } from '@nextcloud/vue'
-import type { Challenge } from '../composables/useGameEngine'
+import { XP_PER_STAGE, CLOSE_ANSWER_XP_DIVISOR } from '../composables/useGameEngine'
+import type { Challenge, SessionStats } from '../composables/useGameEngine'
 import type { GameProgress } from '../composables/useStorage'
-import type { SessionStats } from '../composables/useGameEngine'
+import ChallengeInput from './ChallengeInput.vue'
 import PersonCard from './PersonCard.vue'
 import ProgressBar from './ProgressBar.vue'
 
@@ -264,15 +181,12 @@ const stageLabels: Record<string, string> = {
 	type: '✍️ Master',
 }
 
-const typedAnswer = ref('')
-const chosenAnswer = ref('')
+const xpEarned = ref(0)
 const xpPopup = ref(0)
 const xpPopupKey = ref(0)
 const streakMilestone = ref(0)
 const showConfetti = ref(false)
-const recallInput = useTemplateRef<HTMLInputElement>('recallInput')
-const typeInput = useTemplateRef<HTMLInputElement>('typeInput')
-// Prevent double-submission of the same challenge
+// Prevent double-submission of the meet challenge
 const answered = ref(false)
 // Prevent double-navigation when clicking Next
 const advancing = ref(false)
@@ -281,54 +195,17 @@ const autoAdvancing = ref(false)
 let autoSkipTimeoutId: ReturnType<typeof setTimeout> | null = null
 const AUTO_SKIP_DELAY_MS = 3000 // ms before auto-advancing to next challenge
 
-// Strip diacritics for accent-agnostic comparison
-function normalizeText(s: string): string {
-	return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-}
-
-// Local Levenshtein — mirrors the game engine so XP popup is shown immediately
-function levenshtein(a: string, b: string): number {
-	const m = a.length
-	const n = b.length
-	const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
-		Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
-	)
-	for (let i = 1; i <= m; i++) {
-		for (let j = 1; j <= n; j++) {
-			dp[i][j] = a[i - 1] === b[j - 1]
-				? dp[i - 1][j - 1]
-				: 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
-		}
-	}
-	return dp[m][n]
-}
-
-const xpEarned = ref(0)
-
-const XP_PER_STAGE: Record<string, number> = {
-	meet: 5,
-	recognize: 15,
-	'pick-face': 15,
-	recall: 25,
-	type: 40,
-}
-
 function clearAutoSkipTimers() {
 	if (autoSkipTimeoutId !== null) { clearTimeout(autoSkipTimeoutId); autoSkipTimeoutId = null }
 	autoAdvancing.value = false
 }
 
 // Reset per-challenge state when a new challenge arrives
-watch(() => props.currentChallenge, async () => {
+watch(() => props.currentChallenge, () => {
 	answered.value = false
 	advancing.value = false
-	typedAnswer.value = ''
-	chosenAnswer.value = ''
 	xpEarned.value = 0
 	clearAutoSkipTimers()
-	await nextTick()
-	recallInput.value?.focus()
-	typeInput.value?.focus()
 })
 
 // Watch for streak milestones
@@ -347,40 +224,45 @@ watch(() => props.sessionStats.newlyMastered, (list) => {
 	}
 }, { deep: true })
 
+// Unified XP popup + auto-advance logic triggered by showingResult
+watch(() => props.showingResult, (showing) => {
+	if (showing && props.currentChallenge) {
+		// Compute XP to display based on the engine's determination
+		if (props.lastAnswerCorrect) {
+			xpEarned.value = XP_PER_STAGE[props.currentChallenge.type]
+			triggerXpPopup(xpEarned.value)
+		} else if (props.lastAnswerClose) {
+			xpEarned.value = Math.ceil(XP_PER_STAGE[props.currentChallenge.type] / CLOSE_ANSWER_XP_DIVISOR)
+			triggerXpPopup(xpEarned.value)
+		} else {
+			xpEarned.value = 0
+		}
+
+		if (props.lastAnswerCorrect && props.currentChallenge.type === 'meet') {
+			// Auto-advance meet cards after a short pause
+			setTimeout(() => {
+				if (advancing.value) return
+				advancing.value = true
+				props.gameOver ? emit('end') : emit('next')
+			}, 800)
+		} else if (props.currentChallenge.type !== 'meet') {
+			// Auto-skip: fill Next button with a gradient over AUTO_SKIP_DELAY_MS
+			autoAdvancing.value = true
+			autoSkipTimeoutId = setTimeout(() => { handleNext() }, AUTO_SKIP_DELAY_MS)
+		}
+	} else if (!showing) {
+		clearAutoSkipTimers()
+	}
+})
+
+function handleAnswerFromInput(answer: string) {
+	emit('answer', answer)
+}
+
 function handleMeet() {
 	if (answered.value) return
 	answered.value = true
 	emit('answer', 'ok')
-}
-
-function handleChoice(option: string) {
-	if (answered.value) return
-	answered.value = true
-	chosenAnswer.value = option
-	emit('answer', option)
-
-	if (option === props.currentChallenge?.correctAnswer) {
-		xpEarned.value = XP_PER_STAGE[props.currentChallenge.type]
-		triggerXpPopup(xpEarned.value)
-	}
-}
-
-function handleTypedAnswer() {
-	if (!typedAnswer.value.trim() || answered.value) return
-	answered.value = true
-	emit('answer', typedAnswer.value)
-
-	if (props.currentChallenge) {
-		const norm = normalizeText(typedAnswer.value)
-		const correct = normalizeText(props.currentChallenge.correctAnswer)
-		if (norm === correct) {
-			xpEarned.value = XP_PER_STAGE[props.currentChallenge.type]
-			triggerXpPopup(xpEarned.value)
-		} else if (levenshtein(norm, correct) <= 2) {
-			xpEarned.value = Math.ceil(XP_PER_STAGE[props.currentChallenge.type] / 4)
-			triggerXpPopup(xpEarned.value)
-		}
-	}
 }
 
 function handleNext() {
@@ -404,29 +286,6 @@ function requestHint() {
 	emit('hint')
 }
 
-// Auto-advance meet cards; auto-skip other challenges after 3 s
-watch(() => props.showingResult, (showing) => {
-	if (showing && props.lastAnswerCorrect && props.currentChallenge?.type === 'meet') {
-		xpEarned.value = XP_PER_STAGE.meet
-		triggerXpPopup(xpEarned.value)
-		setTimeout(() => {
-			if (advancing.value) return
-			advancing.value = true
-			if (props.gameOver) {
-				emit('end')
-			} else {
-				emit('next')
-			}
-		}, 800)
-	} else if (showing && props.currentChallenge?.type !== 'meet') {
-		// Auto-skip: fill Next button with a gradient over AUTO_SKIP_DELAY_MS
-		autoAdvancing.value = true
-		autoSkipTimeoutId = setTimeout(() => { handleNext() }, AUTO_SKIP_DELAY_MS)
-	} else if (!showing) {
-		clearAutoSkipTimers()
-	}
-})
-
 function triggerXpPopup(amount: number) {
 	xpPopup.value = amount
 	xpPopupKey.value++
@@ -445,7 +304,7 @@ function confettiStyle(i: number) {
 
 // ── Keyboard shortcuts ────────────────────────────────────────────────────────
 
-// Enter → submit typed answer (non-inputs) or advance when showing result
+// Enter → Got it (meet) or advance when showing result
 useHotKey((e) => e.key === 'Enter', (e) => {
 	e.preventDefault()
 	if (props.showingResult) {
@@ -466,20 +325,6 @@ useHotKey('Escape', () => {
 useHotKey('h', () => {
 	if (!props.showingResult && !answered.value && props.currentChallenge?.type !== 'meet' && props.hintLevel < 2) {
 		requestHint()
-	}
-})
-
-// 1-4 → select choice / face (recognize / pick-face)
-useHotKey(['1', '2', '3', '4'], (e) => {
-	if (props.showingResult || answered.value) return
-	const idx = parseInt(e.key) - 1
-	const type = props.currentChallenge?.type
-	if (type === 'recognize' && props.currentChallenge?.options) {
-		const visible = props.currentChallenge.options.filter(o => !props.eliminatedOptions.includes(o))
-		if (visible[idx] !== undefined) handleChoice(visible[idx])
-	} else if (type === 'pick-face' && props.currentChallenge?.photoOptions) {
-		const visible = props.currentChallenge.photoOptions.filter(m => !props.eliminatedOptions.includes(m.name))
-		if (visible[idx] !== undefined) handleChoice(visible[idx].name)
 	}
 })
 </script>
@@ -582,145 +427,6 @@ useHotKey(['1', '2', '3', '4'], (e) => {
 
 .stage-tag.type        { background: #e74c3c; color: #fff; }
 
-/* ── Prompts ─────────────────────────────────────*/
-.prompt {
-	font-size: 1.1rem;
-	font-weight: 600;
-	color: var(--color-main-text);
-	margin: 0;
-}
-
-.sub-prompt {
-	font-size: 0.88rem;
-	color: var(--color-text-maxcontrast);
-	margin: 0;
-}
-
-/* ── Meet ────────────────────────────────────────*/
-.meet-area {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-/* ── Multiple choice ─────────────────────────────*/
-.choice-area {
-	display: flex;
-	flex-direction: column;
-	gap: 14px;
-}
-
-.choice-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 10px;
-}
-
-.choice-btn {
-	padding: 12px 10px;
-	border: 2px solid var(--color-border-dark);
-	border-radius: var(--border-radius-element);
-	background: var(--color-main-background);
-	color: var(--color-main-text);
-	font-size: 0.88rem;
-	font-weight: 600;
-	cursor: pointer;
-	transition: all 0.15s ease;
-	text-align: center;
-	line-height: 1.3;
-	margin: 0;
-}
-
-.choice-btn:hover:not(.disabled) {
-	background: var(--color-background-hover);
-	border-color: var(--color-primary-element);
-}
-
-.choice-btn.correct {
-	background: var(--color-success);
-	border-color: var(--color-element-success);
-	color: var(--color-text-success);
-}
-
-.choice-btn.wrong {
-	background: var(--color-error);
-	border-color: var(--color-element-error);
-	color: var(--color-text-error);
-}
-
-.choice-btn.disabled { cursor: default; }
-
-.choice-btn.eliminated {
-	opacity: 0.3;
-	text-decoration: line-through;
-	cursor: default;
-}
-
-/* ── Recall / Type ───────────────────────────────*/
-.recall-area,
-.type-area {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-
-.masked-name {
-	font-size: 1.3rem;
-	font-weight: 700;
-	color: var(--color-main-text);
-	letter-spacing: 0.15em;
-	font-family: 'Courier New', monospace;
-	margin: 0;
-}
-
-.type-input-row {
-	display: flex;
-	gap: 8px;
-}
-
-.name-input {
-	flex: 1;
-	padding: 10px 14px;
-	border: 2px solid var(--color-border-dark);
-	border-radius: var(--border-radius-element);
-	background: var(--color-main-background);
-	color: var(--color-main-text);
-	font-size: 1rem;
-	font-weight: 500;
-	outline: none;
-	transition: border-color 0.15s ease;
-}
-
-.name-input::placeholder {
-	color: var(--color-placeholder-dark);
-}
-
-.name-input:focus {
-	border-color: var(--color-primary-element);
-}
-
-.name-input:disabled {
-	opacity: 0.6;
-}
-
-.btn-submit {
-	margin: 0;
-	padding: 10px 18px;
-	border: none;
-	border-radius: var(--border-radius-element);
-	background: var(--color-primary-element);
-	color: var(--color-primary-element-text);
-	font-size: 1.1rem;
-	font-weight: 700;
-	cursor: pointer;
-	transition: background 0.15s ease;
-	flex-shrink: 0;
-}
-
-.btn-submit:hover:not(:disabled) { background: var(--color-primary-element-hover); }
-
-.btn-submit:disabled { opacity: 0.4; cursor: default; }
-
 /* ── Hint ────────────────────────────────────────*/
 .hint-bubble {
 	background: var(--color-background-dark);
@@ -762,13 +468,6 @@ useHotKey(['1', '2', '3', '4'], (e) => {
 	flex-shrink: 0;
 }
 
-/* Inline hint bubble (inside type-area) */
-.hint-bubble--inline {
-	font-family: 'Courier New', monospace;
-	font-weight: 700;
-	letter-spacing: 0.1em;
-}
-
 /* ── "I don't know" skip button ──────────────────*/
 .btn-skip {
 	margin: 0;
@@ -799,39 +498,6 @@ kbd {
 	opacity: 0.7;
 	vertical-align: middle;
 	line-height: 1.4;
-}
-
-.key-hint {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 1.4em;
-	height: 1.4em;
-	margin-inline-end: 6px;
-	border: 1px solid var(--color-border-dark);
-	border-radius: 4px;
-	font-size: 0.75em;
-	font-weight: 700;
-	opacity: 0.6;
-	flex-shrink: 0;
-	vertical-align: middle;
-}
-
-.face-key-hint {
-	position: absolute;
-	top: 6px;
-	inset-inline-start: 6px;
-	width: 22px;
-	height: 22px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: rgba(0, 0, 0, 0.55);
-	color: #fff;
-	border-radius: 5px;
-	font-size: 0.72rem;
-	font-weight: 700;
-	z-index: 1;
 }
 
 /* ── Action area ─────────────────────────────────*/
@@ -942,10 +608,6 @@ kbd {
 	.flex-spacer {
 		display: none;
 	}
-
-	.choice-grid {
-		grid-template-columns: 1fr;
-	}
 }
 
 /* ── Name badge (pick-face left column) ──────────*/
@@ -997,83 +659,6 @@ kbd {
 	color: var(--color-text-maxcontrast);
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
-}
-
-/* ── Pick-face photo grid ────────────────────────*/
-.pick-face-area {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	flex: 1;
-	min-height: 0;
-	overflow: hidden;
-}
-
-.face-grid {
-	display: flex;
-	flex-direction: row;
-	gap: 10px;
-	flex: 1;
-	min-height: 0;
-}
-
-.face-option {
-	position: relative;
-	border: 3px solid var(--color-border-dark);
-	border-radius: var(--border-radius-container);
-	overflow: hidden;
-	background: var(--color-background-dark);
-	cursor: pointer;
-	padding: 0;
-	min-height: 0;
-	flex: 1;
-	transition: border-color 0.15s ease, transform 0.12s ease;
-	margin: 0;
-}
-
-.face-option:hover:not(.disabled) {
-	border-color: var(--color-primary-element);
-	transform: scale(1.03);
-}
-
-.face-option.correct {
-	border-color: var(--color-element-success);
-	box-shadow: 0 0 0 3px var(--color-success);
-}
-
-.face-option.wrong {
-	border-color: var(--color-element-error);
-	box-shadow: 0 0 0 3px var(--color-error);
-}
-
-.face-option.disabled { cursor: default; }
-
-.face-option.eliminated {
-	opacity: 0.25;
-	cursor: default;
-}
-
-.face-option-img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	object-position: center center;
-	display: block;
-}
-
-.face-correct-label {
-	position: absolute;
-	bottom: 0;
-	inset-inline: 0;
-	background: var(--color-element-success);
-	color: #fff;
-	font-size: 0.72rem;
-	font-weight: 700;
-	padding: 4px 6px;
-	text-align: center;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
 /* ── Overlays ─────────────────────────────────────*/

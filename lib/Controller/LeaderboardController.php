@@ -11,15 +11,15 @@ namespace OCA\WhoIsWho\Controller;
 
 use OCA\WhoIsWho\AppInfo\Application;
 use OCA\WhoIsWho\Db\LeaderboardMapper;
-use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\ApiRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
-use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
-use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\OCSController;
 use OCP\IRequest;
 use OCP\IUserSession;
 
-class LeaderboardController extends Controller {
+class LeaderboardController extends OCSController {
 	public function __construct(
 		IRequest $request,
 		private LeaderboardMapper $mapper,
@@ -29,23 +29,24 @@ class LeaderboardController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	#[NoCSRFRequired]
-	public function getScores(): JSONResponse {
+	#[ApiRoute(verb: 'GET', url: '/leaderboard')]
+	public function getScores(): DataResponse {
 		$allTime = $this->mapper->getTopAllTime(20);
 		$weekly = $this->mapper->getTopWeekly(20);
-		return new JSONResponse(['allTime' => $allTime, 'weekly' => $weekly]);
+		return new DataResponse(['allTime' => $allTime, 'weekly' => $weekly]);
 	}
 
 	#[NoAdminRequired]
-	public function submitScore(int $score): JSONResponse {
+	#[ApiRoute(verb: 'POST', url: '/leaderboard/score')]
+	public function submitScore(int $score): DataResponse {
 		$user = $this->userSession->getUser();
 		if ($user === null) {
-			return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
+			return new DataResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
 		}
 		if ($score <= 0) {
-			return new JSONResponse(['error' => 'Score must be positive'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['error' => 'Score must be positive'], Http::STATUS_BAD_REQUEST);
 		}
 		$this->mapper->upsertScore($user->getUID(), $user->getDisplayName(), $score);
-		return new JSONResponse(['ok' => true]);
+		return new DataResponse(['ok' => true]);
 	}
 }

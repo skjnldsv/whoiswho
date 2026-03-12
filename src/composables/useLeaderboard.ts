@@ -5,7 +5,7 @@
 
 import { ref } from 'vue'
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
+import { generateOcsUrl } from '@nextcloud/router'
 import { getCurrentUser } from '@nextcloud/auth'
 
 export interface LeaderboardEntry {
@@ -22,6 +22,11 @@ export interface LeaderboardData {
 	weekly: LeaderboardEntry[]
 }
 
+// OCS response envelope
+interface OcsResponse<T> {
+	ocs: { data: T }
+}
+
 export function useLeaderboard() {
 	const allTime = ref<LeaderboardEntry[]>([])
 	const weekly = ref<LeaderboardEntry[]>([])
@@ -35,10 +40,11 @@ export function useLeaderboard() {
 		loading.value = true
 		error.value = false
 		try {
-			const url = generateUrl('/apps/whoiswho/leaderboard')
-			const { data } = await axios.get<LeaderboardData>(url)
-			allTime.value = data.allTime ?? []
-			weekly.value = data.weekly ?? []
+			const { data } = await axios.get<OcsResponse<LeaderboardData>>(
+				generateOcsUrl('apps/whoiswho/leaderboard'),
+			)
+			allTime.value = data.ocs.data.allTime ?? []
+			weekly.value = data.ocs.data.weekly ?? []
 		} catch {
 			error.value = true
 		} finally {
@@ -49,8 +55,7 @@ export function useLeaderboard() {
 	async function submitScore(xpEarned: number): Promise<void> {
 		if (xpEarned <= 0) return
 		try {
-			const url = generateUrl('/apps/whoiswho/leaderboard/score')
-			await axios.post(url, { score: xpEarned })
+			await axios.post(generateOcsUrl('apps/whoiswho/leaderboard/score'), { score: xpEarned })
 		} catch {
 			// Silently ignore — leaderboard submission is best-effort
 		}

@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useLeaderboard } from '../composables/useLeaderboard'
+import { rankLabel } from '../utils/strings'
 import type { LeaderboardEntry } from '../composables/useLeaderboard'
 
 const emit = defineEmits<{ close: [] }>()
@@ -83,13 +84,6 @@ const myRank = computed(() => {
 	const idx = currentList.value.findIndex(e => e.user_id === currentUser)
 	return idx >= 0 ? idx + 1 : 0
 })
-
-function rankLabel(i: number): string {
-	if (i === 0) return '🥇'
-	if (i === 1) return '🥈'
-	if (i === 2) return '🥉'
-	return `#${i + 1}`
-}
 
 function avatarLetter(entry: LeaderboardEntry): string {
 	const name = entry.display_name || entry.user_id
