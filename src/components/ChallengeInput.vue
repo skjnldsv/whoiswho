@@ -122,7 +122,7 @@ import type { Challenge } from '../composables/useGameEngine.ts'
 
 import { t } from '@nextcloud/l10n'
 import { useHotKey } from '@nextcloud/vue'
-import { nextTick, ref, useTemplateRef, watch } from 'vue'
+import { nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 
 const props = defineProps<{
 	challenge: Challenge
@@ -148,6 +148,13 @@ watch(() => props.challenge, async () => {
 	typedAnswer.value = ''
 	chosenAnswer.value = ''
 	emitted.value = false
+	await nextTick()
+	recallInput.value?.focus()
+	typeInput.value?.focus()
+})
+
+// Auto-focus the text input on initial mount
+onMounted(async () => {
 	await nextTick()
 	recallInput.value?.focus()
 	typeInput.value?.focus()

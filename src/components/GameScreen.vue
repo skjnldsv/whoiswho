@@ -18,7 +18,9 @@
 		</div>
 
 		<!-- ── Two-column body ── -->
-		<div v-if="currentChallenge" class="game-body">
+		<div v-if="currentChallenge"
+			class="game-body"
+			:class="{ 'game-body--meet-pending': currentChallenge.type === 'meet' && !showingResult }">
 			<!-- LEFT: photo card (animates per challenge) -->
 			<div class="card-column">
 				<Transition name="card-fade" mode="out-in">
@@ -45,9 +47,17 @@
 							v-else
 							:person="currentChallenge.person"
 							:showName="currentChallenge.type === 'meet'"
-							:flipped="showingResult && currentChallenge.type !== 'meet'"
+							:flipped="showingResult && lastAnswerCorrect && currentChallenge.type !== 'meet'"
 							:correct="showingResult && lastAnswerCorrect"
 							:wrong="showingResult && !lastAnswerCorrect" />
+						<!-- "Got it" button lives below the card for meet challenges -->
+						<button
+							v-if="currentChallenge.type === 'meet' && !showingResult"
+							class="btn-action btn-action--meet"
+							:disabled="answered"
+							@click="handleMeet">
+							Got it <kbd>↵</kbd>
+						</button>
 					</div>
 				</Transition>
 			</div>
@@ -79,10 +89,10 @@
 							? (progress.xp < 10 ? 'Need 10 XP for a hint' : 'Use hint (-10 XP)')
 							: (progress.xp < 15 ? 'Need 15 XP for more help' : 'Reveal more (-15 XP)')"
 						@click="requestHint">
-						💡 {{ hintLevel === 0 ? 'Hint' : 'More help' }} <kbd>H</kbd>
+						💡 {{ hintLevel === 0 ? 'Hint' : 'More help' }} <kbd class="kbd-gap">H</kbd>
 					</button>
 					<button class="btn-skip" @click="handleSkip">
-						🤷 I don't know <kbd>Esc</kbd>
+						🤷 I don't know <kbd class="kbd-gap">Esc</kbd>
 					</button>
 				</div>
 
@@ -100,6 +110,11 @@
 								'result-close': lastAnswerClose && !lastAnswerCorrect,
 								'result-wrong': !lastAnswerCorrect && !lastAnswerClose,
 							}">
+							<img
+								v-if="currentChallenge.person.photo"
+								:src="currentChallenge.person.photo"
+								:alt="currentChallenge.person.name"
+								class="result-avatar">
 							<span class="feedback-icon">{{ lastAnswerCorrect ? '✨' : lastAnswerClose ? '🎯' : '😕' }}</span>
 							<span v-if="lastAnswerCorrect">Correct! +{{ xpEarned }} XP</span>
 							<span v-else-if="lastAnswerClose">So close! It's <strong>{{ currentChallenge.correctAnswer }}</strong> (+{{ xpEarned }} XP)</span>
@@ -107,19 +122,12 @@
 						</div>
 					</Transition>
 					<button
-						v-if="currentChallenge.type === 'meet' && !showingResult"
-						class="btn-action"
-						:disabled="answered"
-						@click="handleMeet">
-						Got it <kbd>↵</kbd>
-					</button>
-					<button
-						v-else-if="showingResult && currentChallenge.type !== 'meet'"
+						v-if="showingResult && currentChallenge.type !== 'meet'"
 						class="btn-action"
 						:class="{ 'btn-action--auto-advancing': autoAdvancing }"
 						:style="autoAdvancing ? { '--auto-progress-duration': AUTO_SKIP_DELAY_MS + 'ms' } : {}"
 						@click="handleNext">
-						{{ gameOver ? '📊 See Results' : 'Next' }} <kbd>↵</kbd>
+						{{ gameOver ? '📊 See Results' : 'Next' }} <kbd class="kbd-gap">↵</kbd>
 					</button>
 				</div>
 			</div>
@@ -423,6 +431,21 @@ useHotKey('h', () => {
 	min-height: 0;
 	display: flex;
 	overflow: hidden;
+	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Meet-pending: center the card, hide the right column */
+.game-body--meet-pending {
+	justify-content: center;
+}
+
+.game-body--meet-pending .card-column {
+	flex: 0 0 min(360px, 90%);
+	border-inline-end: none;
+}
+
+.game-body--meet-pending .challenge-column {
+	display: none;
 }
 
 /* ── Left: photo card ──────────────────────────────────────────────*/
@@ -448,6 +471,7 @@ useHotKey('h', () => {
 .challenge-column {
 	flex: 1;
 	min-width: 0;
+	max-width: 500px;
 	display: flex;
 	flex-direction: column;
 	padding: 20px 24px 16px;
@@ -569,6 +593,11 @@ kbd {
 	line-height: 1.4;
 }
 
+/* Add a small gap between button text and the hotkey badge */
+.kbd-gap {
+	margin-inline-start: 4px;
+}
+
 /* ── Action area ─────────────────────────────────────────────────*/
 .action-area {
 	flex-shrink: 0;
@@ -585,6 +614,16 @@ kbd {
 	border-radius: var(--border-radius-element);
 	font-size: 0.95rem;
 	font-weight: 600;
+}
+
+.result-avatar {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	object-fit: cover;
+	flex-shrink: 0;
+	border: 2px solid currentColor;
+	opacity: 0.9;
 }
 
 .result-correct {
@@ -628,6 +667,11 @@ kbd {
 	align-items: center;
 	justify-content: center;
 	box-sizing: border-box;
+}
+
+/* "Got it" button below the card for meet challenges */
+.btn-action--meet {
+	max-width: 300px;
 }
 
 .btn-action:hover:not(:disabled) { background: var(--color-primary-element-hover); }

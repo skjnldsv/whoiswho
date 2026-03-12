@@ -3,7 +3,7 @@
   - SPDX-License-Identifier: AGPL-3.0-or-later
   -->
 <template>
-	<div class="person-card" :class="{ 'card-flip': flipped, 'card-correct': correct, 'card-wrong': wrong }">
+	<div class="person-card" :class="{ 'card-flip': flipped, 'card-correct': correct, 'card-wrong': wrong, 'card-shake': wrong }">
 		<div class="card-inner">
 			<div class="card-front">
 				<div class="photo-frame">
@@ -100,6 +100,21 @@ function onImgError() {
 
 .card-flip .card-inner {
 	transform: rotateY(180deg);
+}
+
+.card-shake {
+	animation: cardShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes cardShake {
+	0%,
+	100% { transform: translateX(0); }
+	15%  { transform: translateX(-8px) rotate(-1deg); }
+	30%  { transform: translateX(8px) rotate(1deg); }
+	45%  { transform: translateX(-6px) rotate(-0.5deg); }
+	60%  { transform: translateX(6px) rotate(0.5deg); }
+	75%  { transform: translateX(-3px); }
+	90%  { transform: translateX(3px); }
 }
 
 .card-front,
