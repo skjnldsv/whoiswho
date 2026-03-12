@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<info xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>whoiswho</id>
+    <name>Who's Who</name>
+    <summary>Learn the names of Nextcloud team members</summary>
+    <description><![CDATA[A Duolingo-style memory game that helps you learn the names and faces of Nextcloud team members using spaced repetition.]]></description>
+    <version>1.0.0</version>
+    <licence>agpl</licence>
+    <author mail="dev@bernhard-posselt.com" >Bernhard Posselt</author>
+    <namespace>WhoisWho</namespace>
+    <category>office</category>
+    <bugs>https://github.com/nextcloud/app-tutorial</bugs>
+    <dependencies>
+        <nextcloud min-version="31" max-version="32"/>
+    </dependencies>
+    <navigations>
+        <navigation>
+            <name>Who's Who</name>
+            <route>whoiswho.page.index</route>
+        </navigation>
+    </navigations>
+</info>

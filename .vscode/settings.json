@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^node scripts/scrape-team\\.mjs$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e 'const d=require\\(\"\\./src/data/team\\.json\"\\); console\\.log\\(\"With photos:\", d\\.filter\\(m=>m\\.photo\\)\\.length\\); d\\.slice\\(0,5\\)\\.forEach\\(m => console\\.log\\(m\\.name, \"->\", m\\.photo\\.substring\\(0,80\\)\\)\\)'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
