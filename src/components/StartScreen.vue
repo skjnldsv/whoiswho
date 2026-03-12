@@ -21,12 +21,26 @@
 			</div>
 
 			<div class="actions">
-				<button class="btn-start" @click="$emit('start')">
-					{{ hasProgress ? '▶ Continue Learning' : '🎮 Start Game' }}
-				</button>
-				<button v-if="hasProgress" class="btn-reset" @click="$emit('reset')">
-					↺ Reset Progress
-				</button>
+				<!-- Loading state -->
+				<div v-if="loading" class="load-state">
+					<NcLoadingIcon :size="32" />
+					<span>Loading team members…</span>
+				</div>
+				<!-- Error state -->
+				<div v-else-if="loadError" class="load-state load-error">
+					<span>⚠️ Could not load team members.</span>
+					<button class="btn-retry" @click="$emit('retry')">
+						↺ Retry
+					</button>
+				</div>
+				<template v-else>
+					<button class="btn-start" @click="$emit('start')">
+						{{ hasProgress ? '▶ Continue Learning' : '🎮 Start Game' }}
+					</button>
+					<button v-if="hasProgress" class="btn-reset" @click="$emit('reset')">
+						↺ Reset Progress
+					</button>
+				</template>
 			</div>
 		</div>
 
@@ -117,18 +131,22 @@
 import type { TeamMember } from '../composables/useGameEngine.ts'
 import type { GameProgress } from '../composables/useStorage.ts'
 
+import { NcLoadingIcon } from '@nextcloud/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useLeaderboard } from '../composables/useLeaderboard.ts'
 import { rankLabel } from '../utils/strings.ts'
 
 const props = defineProps<{
 	allMembers: TeamMember[]
+	loading: boolean
+	loadError: boolean
 	progress: GameProgress
 }>()
 defineEmits<{
 	start: []
 	reset: []
 	leaderboard: []
+	retry: []
 }>()
 const HERO_EMOJIS = ['🧑‍🤝‍🧑', '👫', '👬', '👭', '🫂']
 const heroEmoji = HERO_EMOJIS[Math.floor(Math.random() * HERO_EMOJIS.length)]
@@ -150,13 +168,13 @@ onMounted(fetchScores)
 <style scoped>
 .start-screen {
 	width: 100%;
-	height: 100%;
+	min-height: 100%;
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
 	padding: 20px 24px;
 	box-sizing: border-box;
-	overflow: hidden;
+	overflow-y: auto;
 }
 
 /* ── Top section ── */
@@ -209,6 +227,37 @@ h1 {
 	display: flex;
 	align-items: center;
 	gap: 12px;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.load-state {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.95rem;
+}
+
+.load-error {
+	color: var(--color-text-error, #e74c3c);
+}
+
+.btn-retry {
+	margin: 0;
+	padding: 8px 18px;
+	border-radius: var(--border-radius-pill);
+	border: 1px solid currentColor;
+	background: transparent;
+	color: inherit;
+	font-size: 0.88rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.btn-retry:hover {
+	background: var(--color-background-hover);
 }
 
 .btn-start {
