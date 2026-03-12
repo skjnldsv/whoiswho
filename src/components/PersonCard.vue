@@ -88,10 +88,10 @@ function onImgError() {
 	position: absolute;
 	inset: 0;
 	backface-visibility: hidden;
-	border-radius: var(--border-radius-large, 16px);
-	background: var(--whw-card-bg, var(--color-main-background, #fff));
-	border: 1px solid var(--color-border, rgba(0,0,0,0.1));
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+	border-radius: var(--border-radius-container-large);
+	background: var(--whw-card-bg, var(--color-main-background));
+	border: 1px solid var(--color-border-dark);
+	box-shadow: 0 4px 20px var(--color-box-shadow);
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -106,13 +106,13 @@ function onImgError() {
 }
 
 .card-correct .card-inner {
-	box-shadow: 0 0 0 4px #2ecc71, 0 8px 32px rgba(46, 204, 113, 0.3);
-	border-radius: 20px;
+	box-shadow: 0 0 0 4px var(--color-element-success), 0 8px 32px var(--color-success);
+	border-radius: var(--border-radius-container-large);
 }
 
 .card-wrong .card-inner {
-	box-shadow: 0 0 0 4px #e74c3c, 0 8px 32px rgba(231, 76, 60, 0.3);
-	border-radius: 20px;
+	box-shadow: 0 0 0 4px var(--color-element-error), 0 8px 32px var(--color-error);
+	border-radius: var(--border-radius-container-large);
 }
 
 .photo-frame {
@@ -173,7 +173,7 @@ function onImgError() {
 .title {
 	margin: 0;
 	font-size: clamp(0.75rem, 2vw, 0.85rem);
-	color: var(--whw-card-title, #666);
+	color: var(--whw-card-title, var(--color-text-maxcontrast));
 	line-height: 1.4;
 	text-align: center;
 }
@@ -181,9 +181,9 @@ function onImgError() {
 .dept-badge {
 	display: inline-block;
 	padding: 3px 10px;
-	border-radius: var(--border-radius-pill, 20px);
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	border-radius: var(--border-radius-pill);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	font-size: 0.72rem;
 	font-weight: 600;
 	letter-spacing: 0.02em;

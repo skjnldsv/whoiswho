@@ -4,7 +4,6 @@
  */
 
 import { ref, computed } from 'vue'
-import type { Ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import {
@@ -70,10 +69,35 @@ const PLACEHOLDER_PHOTO = 'https://nextcloud.com/c/themes/nextcloud-theme/dist/i
 // Pool size — how many people we juggle at once
 const ACTIVE_POOL_SIZE = 6
 
+// Close-answer tuning
+const CLOSE_ANSWER_THRESHOLD = 2 // max Levenshtein distance to be "close"
+const CLOSE_ANSWER_XP_DIVISOR = 4 // close answers earn 1/4 of full XP
+
+// Second-hint reveal tuning
+const REVEAL_MIN_COUNT = 2 // minimum letters to reveal
+const REVEAL_FRACTION = 1 / 3 // fraction of hidden letters to reveal
+
 // Monotonic counter — ensures Vue's Transition always sees a new key even when person+type stays the same
 let challengeSeq = 0
 
-export function useGameEngine(departmentFilter: Ref<string[]>) {
+// Levenshtein distance for close-answer detection
+function levenshtein(a: string, b: string): number {
+	const m = a.length
+	const n = b.length
+	const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+		Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
+	)
+	for (let i = 1; i <= m; i++) {
+		for (let j = 1; j <= n; j++) {
+			dp[i][j] = a[i - 1] === b[j - 1]
+				? dp[i - 1][j - 1]
+				: 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+		}
+	}
+	return dp[m][n]
+}
+
+export function useGameEngine() {
 	const progress = ref<GameProgress>(loadProgress())
 	const currentChallenge = ref<Challenge | null>(null)
 	const sessionStats = ref<SessionStats>({
@@ -90,6 +114,7 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 	const gameOver = ref(false)
 	const showingResult = ref(false)
 	const lastAnswerCorrect = ref(false)
+	const lastAnswerClose = ref(false)
 	// Track last shown person to avoid showing the same person twice in a row
 	const lastPersonId = ref<number | null>(null)
 
@@ -107,24 +132,14 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 		allMembersRaw.value.filter(m => m.photo && m.name && m.photo !== PLACEHOLDER_PHOTO),
 	)
 
-	const filteredMembers = computed(() => {
-		if (departmentFilter.value.length === 0) return allMembers.value
-		return allMembers.value.filter(m => departmentFilter.value.includes(m.department))
-	})
-
-	const departments = computed(() => {
-		const depts = new Set(allMembers.value.map(m => m.department))
-		return [...depts].sort()
-	})
-
 	const masteredCount = computed(() => {
-		return filteredMembers.value.filter(m => {
+		return allMembers.value.filter(m => {
 			const p = progress.value.people[m.id]
 			return p && p.stage >= 4
 		}).length
 	})
 
-	const totalCount = computed(() => filteredMembers.value.length)
+	const totalCount = computed(() => allMembers.value.length)
 
 	const levelProgress = computed(() => {
 		const xpForLevel = progress.value.level * 100
@@ -151,7 +166,7 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 
 	function pickNextPerson(): TeamMember | null {
 		const now = Date.now()
-		const members = filteredMembers.value
+		const members = allMembers.value
 
 		if (members.length === 0) return null
 
@@ -232,14 +247,14 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 	}
 
 	function getRandomOptions(correct: TeamMember, count: number): string[] {
-		const others = filteredMembers.value.filter(m => m.id !== correct.id)
+		const others = allMembers.value.filter(m => m.id !== correct.id)
 		const shuffled = others.sort(() => Math.random() - 0.5).slice(0, count - 1)
 		const options = [...shuffled.map(m => m.name), correct.name]
 		return options.sort(() => Math.random() - 0.5)
 	}
 
 	function getRandomPhotoOptions(correct: TeamMember, count: number): TeamMember[] {
-		const others = filteredMembers.value.filter(m => m.id !== correct.id)
+		const others = allMembers.value.filter(m => m.id !== correct.id)
 		const shuffled = others.sort(() => Math.random() - 0.5).slice(0, count - 1)
 		return [...shuffled, correct].sort(() => Math.random() - 0.5)
 	}
@@ -249,7 +264,7 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 		let type: ChallengeType = STAGE_TO_TYPE[Math.min(pp.stage, 4)]
 
 		// At recognize stage, randomly alternate between name-pick and face-pick
-		if (type === 'recognize' && filteredMembers.value.length >= 4) {
+		if (type === 'recognize' && allMembers.value.length >= 4) {
 			type = Math.random() < 0.5 ? 'recognize' : 'pick-face'
 		}
 
@@ -297,6 +312,8 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 		const normalizedAnswer = strip(answer)
 		const normalizedCorrect = strip(challenge.correctAnswer)
 		const isCorrect = isMeet || normalizedAnswer === normalizedCorrect
+		// A "close" answer has Levenshtein distance ≤ 2 (catches 1-2 char typos)
+		const isClose = !isCorrect && !isMeet && levenshtein(normalizedAnswer, normalizedCorrect) <= CLOSE_ANSWER_THRESHOLD
 
 		pp.lastSeen = now
 		sessionStats.value.answered++
@@ -332,6 +349,24 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 			if (pp.stage === 4) {
 				sessionStats.value.newlyMastered.push(challenge.person.name)
 			}
+		} else if (isClose) {
+			// Close answer: give ¼ XP, don't penalize stage or life (honest near-miss)
+			pp.totalWrong++
+			pp.correctStreak = 0
+			pp.nextReview = now + 30_000 // retry soon
+
+			sessionStats.value.wrong++
+			sessionStats.value.streak = 0
+			progress.value.currentStreak = 0
+
+			const partialXp = Math.ceil(XP_PER_STAGE[challenge.type] / CLOSE_ANSWER_XP_DIVISOR)
+			progress.value.xp += partialXp
+			sessionStats.value.xpEarned += partialXp
+
+			const xpForLevelClose = progress.value.level * 100
+			if (progress.value.xp >= xpForLevelClose) {
+				progress.value.level++
+			}
 		} else {
 			pp.totalWrong++
 			pp.correctStreak = 0
@@ -349,6 +384,7 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 		}
 
 		lastAnswerCorrect.value = isCorrect
+		lastAnswerClose.value = isClose
 		showingResult.value = true
 		saveProgress(progress.value)
 
@@ -368,6 +404,107 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 		return `${person.title} — ${person.department}`
 	}
 
+	/**
+	 * Mark the current challenge as skipped (wrong but no life lost).
+	 * Used by the "I don't know" button.
+	 */
+	function skipAnswer() {
+		if (!currentChallenge.value || showingResult.value) return
+		const challenge = currentChallenge.value
+		const pp = getPersonProgress(progress.value, challenge.person.id)
+		const now = Date.now()
+
+		pp.lastSeen = now
+		pp.totalWrong++
+		pp.correctStreak = 0
+		pp.stage = Math.max(pp.stage - 1, 1)
+		pp.nextReview = now + 5000
+
+		sessionStats.value.answered++
+		sessionStats.value.wrong++
+		sessionStats.value.streak = 0
+		progress.value.totalAnswered++
+		progress.value.currentStreak = 0
+
+		lastAnswerCorrect.value = false
+		lastAnswerClose.value = false
+		showingResult.value = true
+		saveProgress(progress.value)
+	}
+
+	/**
+	 * Second-level hint for recall/type: reveals ~⅓ more letters.
+	 * Returns a new masked string or null when not applicable.
+	 */
+	function revealMoreLetters(): string | null {
+		if (!currentChallenge.value) return null
+		const type = currentChallenge.value.type
+		if (type !== 'recall' && type !== 'type') return null
+
+		const name = currentChallenge.value.person.name
+		// For 'type' there is no maskedName yet — generate a fresh base mask
+		const baseMask = currentChallenge.value.maskedName ?? generateMaskedName(name)
+
+		const hiddenIndices: number[] = []
+		for (let i = 0; i < baseMask.length; i++) {
+			if (baseMask[i] === '_') hiddenIndices.push(i)
+		}
+		if (hiddenIndices.length === 0) return baseMask
+
+		// Reveal ~⅓ of remaining hidden letters (minimum 2)
+		const revealCount = Math.max(REVEAL_MIN_COUNT, Math.ceil(hiddenIndices.length * REVEAL_FRACTION))
+		const toReveal = hiddenIndices.sort(() => Math.random() - 0.5).slice(0, revealCount)
+		const chars = Array.from(baseMask)
+		for (const idx of toReveal) {
+			chars[idx] = name[idx]
+		}
+		return chars.join('')
+	}
+
+	/**
+	 * Second-level hint for recognize/pick-face: returns the name of a wrong
+	 * option that should be eliminated, or null when not applicable.
+	 */
+	function eliminateWrongOption(): string | null {
+		if (!currentChallenge.value) return null
+		const challenge = currentChallenge.value
+
+		if (challenge.type === 'recognize' && challenge.options) {
+			const wrong = challenge.options.filter(o => o !== challenge.correctAnswer)
+			if (wrong.length === 0) return null
+			return wrong[Math.floor(Math.random() * wrong.length)]
+		}
+
+		if (challenge.type === 'pick-face' && challenge.photoOptions) {
+			const wrong = challenge.photoOptions.filter(m => m.name !== challenge.correctAnswer)
+			if (wrong.length === 0) return null
+			return wrong[Math.floor(Math.random() * wrong.length)].name
+		}
+
+		return null
+	}
+
+	/**
+	 * Perform the second hint (costs 15 XP).
+	 * Returns what was revealed so App.vue can store and display it.
+	 */
+	function useSecondHint(): { revealedMask: string | null; eliminatedOption: string | null } {
+		const empty = { revealedMask: null, eliminatedOption: null }
+		if (!currentChallenge.value) return empty
+		const cost = 15
+		if (progress.value.xp < cost) return empty
+
+		progress.value.xp -= cost
+		sessionStats.value.xpEarned -= cost
+		saveProgress(progress.value)
+
+		const type = currentChallenge.value.type
+		if (type === 'recall' || type === 'type') {
+			return { revealedMask: revealMoreLetters(), eliminatedOption: null }
+		}
+		return { revealedMask: null, eliminatedOption: eliminateWrongOption() }
+	}
+
 	return {
 		progress,
 		currentChallenge,
@@ -377,17 +514,18 @@ export function useGameEngine(departmentFilter: Ref<string[]>) {
 		gameOver,
 		showingResult,
 		lastAnswerCorrect,
+		lastAnswerClose,
 		loading,
 		loadError,
 		allMembers,
-		departments,
-		filteredMembers,
 		masteredCount,
 		totalCount,
 		levelProgress,
 		startSession,
 		nextChallenge,
 		submitAnswer,
+		skipAnswer,
 		useHint,
+		useSecondHint,
 	}
 }

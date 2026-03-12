@@ -52,15 +52,15 @@
 			</div>
 
 			<div class="result-actions">
-				<NcButton class="btn-play-again" type="primary" @click="$emit('playAgain')">
+				<button class="btn-primary btn-play-again" @click="$emit('playAgain')">
 					🎮 Play Again
-				</NcButton>
-				<NcButton type="secondary" @click="$emit('leaderboard')">
+				</button>
+				<button class="btn-secondary" @click="$emit('leaderboard')">
 					🏆 Leaderboard
-				</NcButton>
-				<NcButton type="tertiary" @click="$emit('goHome')">
+				</button>
+				<button class="btn-tertiary" @click="$emit('goHome')">
 					← Back to Menu
-				</NcButton>
+				</button>
 			</div>
 		</div>
 	</div>
@@ -68,7 +68,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import NcButton from '@nextcloud/vue/components/NcButton'
 import type { SessionStats } from '../composables/useGameEngine'
 
 const props = defineProps<{
@@ -102,10 +101,10 @@ const accuracy = computed(() => {
 
 .results-card {
 	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large, 16px);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-container-large);
 	padding: 32px 28px;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+	box-shadow: 0 4px 20px var(--color-box-shadow);
 	text-align: center;
 }
 
@@ -132,21 +131,21 @@ const accuracy = computed(() => {
 .big-value {
 	font-size: 2rem;
 	font-weight: 800;
-	color: var(--color-primary-element, #0082c9);
+	color: var(--color-primary-element);
 	line-height: 1;
 }
 
 .big-label {
 	font-size: 0.75rem;
-	color: var(--color-text-lighter, #888);
+	color: var(--color-text-maxcontrast);
 	font-weight: 600;
 	text-transform: uppercase;
 	margin-top: 4px;
 }
 
 .detail-stats {
-	background: var(--color-background-dark, rgba(0,0,0,0.04));
-	border-radius: var(--border-radius-large, 12px);
+	background: var(--color-background-dark);
+	border-radius: var(--border-radius-container);
 	padding: 16px;
 	margin-bottom: 24px;
 }
@@ -187,9 +186,9 @@ const accuracy = computed(() => {
 
 .mastered-badge {
 	padding: 4px 12px;
-	border-radius: var(--border-radius-pill, 16px);
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	border-radius: var(--border-radius-pill);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	font-size: 0.8rem;
 	font-weight: 600;
 }
@@ -201,9 +200,61 @@ const accuracy = computed(() => {
 	align-items: center;
 }
 
+.btn-primary {
+	margin: 0;
+	padding: 12px 32px;
+	border-radius: var(--border-radius-pill);
+	border: none;
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	font-size: 1rem;
+	font-weight: 700;
+	cursor: pointer;
+	transition: background 0.15s ease;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary:hover {
+	background: var(--color-primary-element-hover);
+}
+
+.btn-secondary {
+	margin: 0;
+	padding: 10px 24px;
+	border-radius: var(--border-radius-pill);
+	border: 2px solid var(--color-primary-element);
+	background: transparent;
+	color: var(--color-primary-element);
+	font-size: 0.92rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.btn-secondary:hover {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.btn-tertiary {
+	margin: 0;
+	padding: 8px 16px;
+	border-radius: var(--border-radius-pill);
+	border: 1px solid var(--color-border-dark);
+	background: transparent;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.88rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.btn-tertiary:hover {
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
 .btn-play-again {
-	font-size: 1rem !important;
-	font-weight: 700 !important;
-	min-height: 44px !important;
+	min-width: 180px;
 }
 </style>

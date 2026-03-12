@@ -47,7 +47,7 @@
 			<div class="challenge-column">
 				<!-- Challenge input (animates per challenge) -->
 				<Transition name="fade" mode="out-in">
-					<div :key="currentChallenge.seq" class="input-area">
+					<div :key="currentChallenge.seq" class="input-area" :class="{ 'pick-face': currentChallenge.type === 'pick-face' }">
 						<!-- Meet: see and remember -->
 						<div v-if="currentChallenge.type === 'meet'" class="meet-area">
 							<p class="prompt">Remember this person!</p>
@@ -106,18 +106,21 @@
 									:disabled="showingResult"
 									autocomplete="off"
 									@keydown.enter="handleTypedAnswer">
-								<NcButton class="btn-submit"
+								<button class="btn-submit"
 									:disabled="showingResult || !typedAnswer.trim()"
 									:aria-label="t('whoiswho', 'Submit answer')"
 									@click="handleTypedAnswer">
 									✓
-								</NcButton>
+								</button>
 							</div>
 						</div>
 
 						<!-- Type: free recall -->
 						<div v-else-if="currentChallenge.type === 'type'" class="type-area">
 							<p class="prompt">Type this person's full name:</p>
+							<div v-if="revealedMask" class="hint-bubble hint-bubble--inline">
+								🔤 {{ revealedMask }}
+							</div>
 							<div class="type-input-row">
 								<input ref="typeInput"
 									v-model="typedAnswer"
@@ -127,29 +130,35 @@
 									:disabled="showingResult"
 									autocomplete="off"
 									@keydown.enter="handleTypedAnswer">
-								<NcButton class="btn-submit"
+								<button class="btn-submit"
 									:disabled="showingResult || !typedAnswer.trim()"
 									:aria-label="t('whoiswho', 'Submit answer')"
 									@click="handleTypedAnswer">
 									✓
-								</NcButton>
+								</button>
 							</div>
 						</div>
 					</div>
 				</Transition>
 
-				<!-- Hint -->
+				<!-- Hints + skip row -->
 				<div v-if="hintText" class="hint-bubble">
 					💡 {{ hintText }}
 				</div>
-				<NcButton v-if="!showingResult && currentChallenge.type !== 'meet' && !hintText"
-					class="btn-hint"
-					type="tertiary"
-					:disabled="progress.xp < 10"
-					:title="progress.xp < 10 ? 'Need 10 XP for a hint' : 'Use hint (-10 XP)'"
-					@click="requestHint">
-					💡 Hint (-10 XP)
-				</NcButton>
+				<div v-if="!showingResult && currentChallenge.type !== 'meet'" class="hint-skip-row">
+					<button v-if="hintLevel < 2"
+						class="btn-hint"
+						:disabled="progress.xp < (hintLevel === 0 ? 10 : 15)"
+						:title="hintLevel === 0
+							? (progress.xp < 10 ? 'Need 10 XP for a hint' : 'Use hint (-10 XP)')
+							: (progress.xp < 15 ? 'Need 15 XP for more help' : 'Reveal more (-15 XP)')"
+						@click="requestHint">
+						💡 {{ hintLevel === 0 ? 'Hint' : 'More help' }} <kbd>H</kbd>
+					</button>
+					<button class="btn-skip" @click="handleSkip">
+						🤷 I don't know <kbd>Esc</kbd>
+					</button>
+				</div>
 
 				<!-- Spacer pushes action row to bottom -->
 				<div class="flex-spacer" />
@@ -159,25 +168,28 @@
 					<Transition name="fade">
 						<div v-if="showingResult && currentChallenge.type !== 'meet'"
 							class="result-msg"
-							:class="lastAnswerCorrect ? 'result-correct' : 'result-wrong'">
-							<span class="feedback-icon">{{ lastAnswerCorrect ? '✨' : '😕' }}</span>
+							:class="{
+								'result-correct': lastAnswerCorrect,
+								'result-close': lastAnswerClose && !lastAnswerCorrect,
+								'result-wrong': !lastAnswerCorrect && !lastAnswerClose,
+							}">
+							<span class="feedback-icon">{{ lastAnswerCorrect ? '✨' : lastAnswerClose ? '🎯' : '😕' }}</span>
 							<span v-if="lastAnswerCorrect">Correct! +{{ xpEarned }} XP</span>
+							<span v-else-if="lastAnswerClose">So close! It's <strong>{{ currentChallenge.correctAnswer }}</strong> (+{{ xpEarned }} XP)</span>
 							<span v-else>It's <strong>{{ currentChallenge.correctAnswer }}</strong></span>
 						</div>
 					</Transition>
-					<NcButton v-if="currentChallenge.type === 'meet' && !showingResult"
+					<button v-if="currentChallenge.type === 'meet' && !showingResult"
 						class="btn-action"
-						type="primary"
 						:disabled="answered"
 						@click="handleMeet">
-						Got it →
-					</NcButton>
-					<NcButton v-else-if="showingResult && currentChallenge.type !== 'meet'"
+						Got it → <kbd>↵</kbd>
+					</button>
+					<button v-else-if="showingResult && currentChallenge.type !== 'meet'"
 						class="btn-action"
-						type="primary"
 						@click="handleNext">
-						{{ gameOver ? '📊 See Results' : 'Next →' }}
-					</NcButton>
+						{{ gameOver ? '📊 See Results' : (autoSkipCountdown > 0 ? `Next → (${autoSkipCountdown}s)` : 'Next →') }} <kbd>↵</kbd>
+					</button>
 				</div>
 			</div>
 		</div>
@@ -206,7 +218,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, useTemplateRef } from 'vue'
 import { t } from '@nextcloud/l10n'
-import NcButton from '@nextcloud/vue/components/NcButton'
+import { useHotKey } from '@nextcloud/vue'
 import type { Challenge } from '../composables/useGameEngine'
 import type { GameProgress } from '../composables/useStorage'
 import type { SessionStats } from '../composables/useGameEngine'
@@ -217,6 +229,7 @@ const props = defineProps<{
 	currentChallenge: Challenge | null
 	showingResult: boolean
 	lastAnswerCorrect: boolean
+	lastAnswerClose: boolean
 	progress: GameProgress
 	sessionStats: SessionStats
 	lives: number
@@ -226,11 +239,15 @@ const props = defineProps<{
 	levelProgress: number
 	gameOver: boolean
 	hintText?: string | null
+	hintLevel: number
+	eliminatedOptions: string[]
+	revealedMask?: string | null
 }>()
 
 const emit = defineEmits<{
 	answer: [value: string]
 	next: []
+	skip: []
 	hint: []
 	end: []
 }>()
@@ -255,10 +272,32 @@ const typeInput = useTemplateRef<HTMLInputElement>('typeInput')
 const answered = ref(false)
 // Prevent double-navigation when clicking Next
 const advancing = ref(false)
+// Auto-skip countdown (seconds remaining)
+const autoSkipCountdown = ref(0)
+let autoSkipTimeoutId: ReturnType<typeof setTimeout> | null = null
+let autoSkipIntervalId: ReturnType<typeof setInterval> | null = null
+const AUTO_SKIP_DELAY_MS = 3000 // ms before auto-advancing to next challenge
 
 // Strip diacritics for accent-agnostic comparison
 function normalizeText(s: string): string {
 	return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+// Local Levenshtein — mirrors the game engine so XP popup is shown immediately
+function levenshtein(a: string, b: string): number {
+	const m = a.length
+	const n = b.length
+	const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+		Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
+	)
+	for (let i = 1; i <= m; i++) {
+		for (let j = 1; j <= n; j++) {
+			dp[i][j] = a[i - 1] === b[j - 1]
+				? dp[i - 1][j - 1]
+				: 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+		}
+	}
+	return dp[m][n]
 }
 
 const xpEarned = ref(0)
@@ -271,6 +310,11 @@ const XP_PER_STAGE: Record<string, number> = {
 	type: 40,
 }
 
+function clearAutoSkipTimers() {
+	if (autoSkipTimeoutId !== null) { clearTimeout(autoSkipTimeoutId); autoSkipTimeoutId = null }
+	if (autoSkipIntervalId !== null) { clearInterval(autoSkipIntervalId); autoSkipIntervalId = null }
+}
+
 // Reset per-challenge state when a new challenge arrives
 watch(() => props.currentChallenge, async () => {
 	answered.value = false
@@ -278,6 +322,8 @@ watch(() => props.currentChallenge, async () => {
 	typedAnswer.value = ''
 	chosenAnswer.value = ''
 	xpEarned.value = 0
+	clearAutoSkipTimers()
+	autoSkipCountdown.value = 0
 	await nextTick()
 	recallInput.value?.focus()
 	typeInput.value?.focus()
@@ -323,8 +369,13 @@ function handleTypedAnswer() {
 	emit('answer', typedAnswer.value)
 
 	if (props.currentChallenge) {
-		if (normalizeText(typedAnswer.value) === normalizeText(props.currentChallenge.correctAnswer)) {
+		const norm = normalizeText(typedAnswer.value)
+		const correct = normalizeText(props.currentChallenge.correctAnswer)
+		if (norm === correct) {
 			xpEarned.value = XP_PER_STAGE[props.currentChallenge.type]
+			triggerXpPopup(xpEarned.value)
+		} else if (levenshtein(norm, correct) <= 2) {
+			xpEarned.value = Math.ceil(XP_PER_STAGE[props.currentChallenge.type] / 4)
 			triggerXpPopup(xpEarned.value)
 		}
 	}
@@ -333,6 +384,8 @@ function handleTypedAnswer() {
 function handleNext() {
 	if (advancing.value) return
 	advancing.value = true
+	clearAutoSkipTimers()
+	autoSkipCountdown.value = 0
 	if (props.gameOver) {
 		emit('end')
 	} else {
@@ -340,11 +393,17 @@ function handleNext() {
 	}
 }
 
+function handleSkip() {
+	if (answered.value || props.showingResult) return
+	answered.value = true
+	emit('skip')
+}
+
 function requestHint() {
 	emit('hint')
 }
 
-// Auto-advance meet cards after showing XP briefly
+// Auto-advance meet cards; auto-skip other challenges after 3 s
 watch(() => props.showingResult, (showing) => {
 	if (showing && props.lastAnswerCorrect && props.currentChallenge?.type === 'meet') {
 		xpEarned.value = XP_PER_STAGE.meet
@@ -358,6 +417,19 @@ watch(() => props.showingResult, (showing) => {
 				emit('next')
 			}
 		}, 800)
+	} else if (showing && props.currentChallenge?.type !== 'meet') {
+		// Auto-skip countdown
+		autoSkipCountdown.value = AUTO_SKIP_DELAY_MS / 1000
+		autoSkipIntervalId = setInterval(() => {
+			autoSkipCountdown.value--
+			if (autoSkipCountdown.value <= 0) {
+				clearAutoSkipTimers()
+			}
+		}, 1000)
+		autoSkipTimeoutId = setTimeout(() => { handleNext() }, AUTO_SKIP_DELAY_MS)
+	} else if (!showing) {
+		clearAutoSkipTimers()
+		autoSkipCountdown.value = 0
 	}
 })
 
@@ -376,6 +448,46 @@ function confettiStyle(i: number) {
 		backgroundColor: colors[i % colors.length],
 	}
 }
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+
+// Enter → submit typed answer (non-inputs) or advance when showing result
+useHotKey((e) => e.key === 'Enter', (e) => {
+	e.preventDefault()
+	if (props.showingResult) {
+		handleNext()
+	} else if (props.currentChallenge?.type === 'meet' && !answered.value) {
+		handleMeet()
+	}
+})
+
+// Escape → I don't know
+useHotKey('Escape', () => {
+	if (!props.showingResult && !answered.value && props.currentChallenge?.type !== 'meet') {
+		handleSkip()
+	}
+})
+
+// H → hint
+useHotKey('h', () => {
+	if (!props.showingResult && !answered.value && props.currentChallenge?.type !== 'meet' && props.hintLevel < 2) {
+		requestHint()
+	}
+})
+
+// 1-4 → select choice / face (recognize / pick-face)
+useHotKey(['1', '2', '3', '4'], (e) => {
+	if (props.showingResult || answered.value) return
+	const idx = parseInt(e.key) - 1
+	const type = props.currentChallenge?.type
+	if (type === 'recognize' && props.currentChallenge?.options) {
+		const visible = props.currentChallenge.options.filter(o => !props.eliminatedOptions.includes(o))
+		if (visible[idx] !== undefined) handleChoice(visible[idx])
+	} else if (type === 'pick-face' && props.currentChallenge?.photoOptions) {
+		const visible = props.currentChallenge.photoOptions.filter(m => !props.eliminatedOptions.includes(m.name))
+		if (visible[idx] !== undefined) handleChoice(visible[idx].name)
+	}
+})
 </script>
 
 <style scoped>
@@ -442,6 +554,14 @@ function confettiStyle(i: number) {
 	flex-shrink: 0;
 }
 
+/* When showing the face-pick grid, let the input-area fill the column
+   so the face images are constrained to the viewport instead of overflowing */
+.input-area.pick-face {
+	flex: 1000 1 0%;
+	min-height: 0;
+	overflow: hidden;
+}
+
 .flex-spacer {
 	flex: 1;
 }
@@ -451,14 +571,14 @@ function confettiStyle(i: number) {
 	display: inline-flex;
 	align-items: center;
 	padding: 4px 14px;
-	border-radius: var(--border-radius-pill, 20px);
+	border-radius: var(--border-radius-pill);
 	font-size: 0.78rem;
 	font-weight: 700;
 	letter-spacing: 0.05em;
 	text-transform: uppercase;
 }
 
-.stage-tag.meet        { background: var(--color-primary-element, #0082c9); color: var(--color-primary-element-text, #fff); }
+.stage-tag.meet        { background: var(--color-primary-element); color: var(--color-primary-element-text); }
 
 .stage-tag.recognize   { background: #9b59b6; color: #fff; }
 
@@ -478,7 +598,7 @@ function confettiStyle(i: number) {
 
 .sub-prompt {
 	font-size: 0.88rem;
-	color: var(--color-text-lighter, var(--color-sub-text, #888));
+	color: var(--color-text-maxcontrast);
 	margin: 0;
 }
 
@@ -504,8 +624,8 @@ function confettiStyle(i: number) {
 
 .choice-btn {
 	padding: 12px 10px;
-	border: 2px solid var(--color-border);
-	border-radius: var(--border-radius-large, 12px);
+	border: 2px solid var(--color-border-dark);
+	border-radius: var(--border-radius-element);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 0.88rem;
@@ -514,6 +634,7 @@ function confettiStyle(i: number) {
 	transition: all 0.15s ease;
 	text-align: center;
 	line-height: 1.3;
+	margin: 0;
 }
 
 .choice-btn:hover:not(.disabled) {
@@ -522,15 +643,15 @@ function confettiStyle(i: number) {
 }
 
 .choice-btn.correct {
-	background: rgba(70, 186, 97, 0.12);
-	border-color: var(--color-success, #46ba61);
-	color: var(--color-success, #2ecc71);
+	background: var(--color-success);
+	border-color: var(--color-element-success);
+	color: var(--color-text-success);
 }
 
 .choice-btn.wrong {
-	background: rgba(233, 50, 45, 0.08);
-	border-color: var(--color-error, #e9322d);
-	color: var(--color-error, #e9322d);
+	background: var(--color-error);
+	border-color: var(--color-element-error);
+	color: var(--color-text-error);
 }
 
 .choice-btn.disabled { cursor: default; }
@@ -560,8 +681,8 @@ function confettiStyle(i: number) {
 .name-input {
 	flex: 1;
 	padding: 10px 14px;
-	border: 2px solid var(--color-border);
-	border-radius: var(--border-radius-large, 12px);
+	border: 2px solid var(--color-border-dark);
+	border-radius: var(--border-radius-element);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 1rem;
@@ -571,7 +692,7 @@ function confettiStyle(i: number) {
 }
 
 .name-input::placeholder {
-	color: var(--color-placeholder-text, var(--color-text-lighter, #bbb));
+	color: var(--color-placeholder-dark);
 }
 
 .name-input:focus {
@@ -583,27 +704,28 @@ function confettiStyle(i: number) {
 }
 
 .btn-submit {
+	margin: 0;
 	padding: 10px 18px;
 	border: none;
-	border-radius: var(--border-radius-large, 12px);
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	border-radius: var(--border-radius-element);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	font-size: 1.1rem;
 	font-weight: 700;
 	cursor: pointer;
-	transition: opacity 0.15s ease;
+	transition: background 0.15s ease;
 	flex-shrink: 0;
 }
 
-.btn-submit:hover:not(:disabled) { opacity: 0.88; }
+.btn-submit:hover:not(:disabled) { background: var(--color-primary-element-hover); }
 
 .btn-submit:disabled { opacity: 0.4; cursor: default; }
 
 /* ── Hint ────────────────────────────────────────*/
 .hint-bubble {
-	background: var(--color-background-dark, rgba(0, 0, 0, 0.05));
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large, 12px);
+	background: var(--color-background-dark);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-container);
 	padding: 10px 14px;
 	color: var(--color-main-text);
 	font-size: 0.85rem;
@@ -611,14 +733,15 @@ function confettiStyle(i: number) {
 }
 
 .btn-hint {
+	margin: 0;
 	padding: 6px 14px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius, 8px);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-element);
 	background: transparent;
-	color: var(--color-text-lighter, #888);
+	color: var(--color-text-maxcontrast);
 	font-size: 0.78rem;
 	cursor: pointer;
-	transition: all 0.15s ease;
+	transition: background 0.15s ease, color 0.15s ease;
 	align-self: flex-start;
 	flex-shrink: 0;
 }
@@ -629,6 +752,87 @@ function confettiStyle(i: number) {
 }
 
 .btn-hint:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Hint + skip row ─────────────────────────────*/
+.hint-skip-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	flex-shrink: 0;
+}
+
+/* Inline hint bubble (inside type-area) */
+.hint-bubble--inline {
+	font-family: 'Courier New', monospace;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+}
+
+/* ── "I don't know" skip button ──────────────────*/
+.btn-skip {
+	margin: 0;
+	padding: 6px 14px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-element);
+	background: transparent;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.78rem;
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease;
+	flex-shrink: 0;
+}
+
+.btn-skip:hover {
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+}
+
+/* ── Keyboard shortcut labels ────────────────────*/
+kbd {
+	display: inline-block;
+	padding: 1px 5px;
+	border: 1px solid currentColor;
+	border-radius: 4px;
+	font-size: 0.65em;
+	font-family: inherit;
+	opacity: 0.7;
+	vertical-align: middle;
+	line-height: 1.4;
+}
+
+.key-hint {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.4em;
+	height: 1.4em;
+	margin-inline-end: 6px;
+	border: 1px solid var(--color-border-dark);
+	border-radius: 4px;
+	font-size: 0.75em;
+	font-weight: 700;
+	opacity: 0.6;
+	flex-shrink: 0;
+	vertical-align: middle;
+}
+
+.face-key-hint {
+	position: absolute;
+	top: 6px;
+	inset-inline-start: 6px;
+	width: 22px;
+	height: 22px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.55);
+	color: #fff;
+	border-radius: 5px;
+	font-size: 0.72rem;
+	font-weight: 700;
+	z-index: 1;
+}
 
 /* ── Action area ─────────────────────────────────*/
 .action-area {
@@ -643,21 +847,27 @@ function confettiStyle(i: number) {
 	align-items: center;
 	gap: 10px;
 	padding: 12px 16px;
-	border-radius: var(--border-radius-large, 12px);
+	border-radius: var(--border-radius-element);
 	font-size: 0.95rem;
 	font-weight: 600;
 }
 
 .result-correct {
-	background: rgba(70, 186, 97, 0.1);
-	border: 1px solid var(--color-success, #46ba61);
-	color: var(--color-success, #2ecc71);
+	background: var(--color-success);
+	border: 1px solid var(--color-element-success);
+	color: var(--color-text-success);
 }
 
 .result-wrong {
-	background: rgba(233, 50, 45, 0.08);
-	border: 1px solid var(--color-error, #e9322d);
-	color: var(--color-error, #e9322d);
+	background: var(--color-error);
+	border: 1px solid var(--color-element-error);
+	color: var(--color-text-error);
+}
+
+.result-close {
+	background: var(--color-warning);
+	border: 1px solid var(--color-element-warning);
+	color: var(--color-text-warning, var(--color-main-text));
 }
 
 .feedback-icon {
@@ -665,26 +875,27 @@ function confettiStyle(i: number) {
 	flex-shrink: 0;
 }
 
-/* Primary action button — full width, NC-styled */
+/* Primary action button — full width */
 .btn-action {
+	margin: 0;
 	width: 100%;
-	min-height: 48px;
+	min-height: var(--clickable-area-large);
 	padding: 12px 24px;
 	border: none;
-	border-radius: var(--border-radius-pill, var(--border-radius-large, 24px));
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	border-radius: var(--border-radius-pill);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	font-size: 1.05rem;
 	font-weight: 700;
 	cursor: pointer;
-	transition: opacity 0.15s ease;
+	transition: background 0.15s ease;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	box-sizing: border-box;
 }
 
-.btn-action:hover:not(:disabled) { opacity: 0.9; }
+.btn-action:hover:not(:disabled) { background: var(--color-primary-element-hover); }
 
 .btn-action:disabled { opacity: 0.45; cursor: default; }
 
@@ -722,9 +933,9 @@ function confettiStyle(i: number) {
 	align-items: center;
 	gap: 10px;
 	padding: 24px 16px;
-	background: var(--color-background-dark, rgba(0,0,0,0.04));
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large, 16px);
+	background: var(--color-background-dark);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-container-large);
 	width: 100%;
 	box-sizing: border-box;
 	text-align: center;
@@ -734,8 +945,8 @@ function confettiStyle(i: number) {
 	width: 64px;
 	height: 64px;
 	border-radius: 50%;
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -755,13 +966,13 @@ function confettiStyle(i: number) {
 .name-badge-title {
 	margin: 0;
 	font-size: 0.85rem;
-	color: var(--color-text-lighter, #888);
+	color: var(--color-text-maxcontrast);
 }
 
 .name-badge-dept {
 	margin: 0;
 	font-size: 0.78rem;
-	color: var(--color-text-lighter, #bbb);
+	color: var(--color-text-maxcontrast);
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
 }
@@ -771,24 +982,31 @@ function confettiStyle(i: number) {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
 }
 
 .face-grid {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
+	grid-template-rows: 1fr 1fr;
 	gap: 10px;
+	flex: 1;
+	min-height: 0;
 }
 
 .face-option {
 	position: relative;
-	border: 3px solid var(--color-border);
-	border-radius: var(--border-radius-large, 12px);
+	border: 3px solid var(--color-border-dark);
+	border-radius: var(--border-radius-container);
 	overflow: hidden;
-	background: var(--color-background-dark, rgba(0,0,0,0.04));
+	background: var(--color-background-dark);
 	cursor: pointer;
 	padding: 0;
-	aspect-ratio: 1;
+	min-height: 0;
 	transition: border-color 0.15s ease, transform 0.12s ease;
+	margin: 0;
 }
 
 .face-option:hover:not(.disabled) {
@@ -797,13 +1015,13 @@ function confettiStyle(i: number) {
 }
 
 .face-option.correct {
-	border-color: var(--color-success, #46ba61);
-	box-shadow: 0 0 0 3px rgba(70, 186, 97, 0.25);
+	border-color: var(--color-element-success);
+	box-shadow: 0 0 0 3px var(--color-success);
 }
 
 .face-option.wrong {
-	border-color: var(--color-error, #e9322d);
-	box-shadow: 0 0 0 3px rgba(233, 50, 45, 0.2);
+	border-color: var(--color-element-error);
+	box-shadow: 0 0 0 3px var(--color-error);
 }
 
 .face-option.disabled { cursor: default; }
@@ -812,6 +1030,7 @@ function confettiStyle(i: number) {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
+	object-position: top center;
 	display: block;
 }
 
@@ -819,7 +1038,7 @@ function confettiStyle(i: number) {
 	position: absolute;
 	bottom: 0;
 	inset-inline: 0;
-	background: rgba(70, 186, 97, 0.9);
+	background: var(--color-element-success);
 	color: #fff;
 	font-size: 0.72rem;
 	font-weight: 700;
@@ -838,7 +1057,7 @@ function confettiStyle(i: number) {
 	transform: translate(-50%, -50%);
 	font-size: 2rem;
 	font-weight: 800;
-	color: var(--color-primary-element, #0082c9);
+	color: var(--color-primary-element);
 	pointer-events: none;
 	z-index: 100;
 }
@@ -850,7 +1069,7 @@ function confettiStyle(i: number) {
 	transform: translateX(-50%);
 	font-size: 1.5rem;
 	font-weight: 800;
-	color: var(--color-error, #e74c3c);
+	color: var(--color-element-warning);
 	pointer-events: none;
 	z-index: 100;
 	animation: streakBounce 2s ease-out forwards;

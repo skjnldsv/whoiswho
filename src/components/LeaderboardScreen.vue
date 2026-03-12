@@ -7,9 +7,9 @@
 		<!-- Header -->
 		<div class="lb-header">
 			<h2 class="lb-title">🏆 Leaderboard</h2>
-			<NcButton type="tertiary" @click="emit('close')">
+			<button class="btn-back" @click="emit('close')">
 				← Back
-			</NcButton>
+			</button>
 		</div>
 
 		<!-- Tabs -->
@@ -66,7 +66,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import NcButton from '@nextcloud/vue/components/NcButton'
 import { useLeaderboard } from '../composables/useLeaderboard'
 import type { LeaderboardEntry } from '../composables/useLeaderboard'
 
@@ -127,6 +126,23 @@ onMounted(fetchScores)
 	font-weight: 700;
 }
 
+.btn-back {
+	margin: 0;
+	padding: 8px 18px;
+	border-radius: var(--border-radius-pill);
+	border: 1px solid var(--color-border-dark);
+	background: transparent;
+	color: var(--color-main-text);
+	font-size: 0.88rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.btn-back:hover {
+	background: var(--color-background-hover);
+}
+
 /* ── Tabs ── */
 .lb-tabs {
 	display: flex;
@@ -137,42 +153,43 @@ onMounted(fetchScores)
 }
 
 .tab-btn {
+	margin: 0;
 	flex: 1;
 	padding: 10px 18px;
-	border: 2px solid var(--color-border);
+	border: 2px solid var(--color-border-dark);
 	background: transparent;
-	color: var(--color-text-lighter, #888);
+	color: var(--color-text-maxcontrast);
 	font-size: 0.9rem;
 	font-weight: 600;
 	cursor: pointer;
-	transition: all 0.15s ease;
+	transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .tab-btn:first-child {
-	border-radius: var(--border-radius, 8px) 0 0 var(--border-radius, 8px);
+	border-radius: var(--border-radius-element) 0 0 var(--border-radius-element);
 	border-inline-end: none;
 }
 
 .tab-btn:last-child {
-	border-radius: 0 var(--border-radius, 8px) var(--border-radius, 8px) 0;
+	border-radius: 0 var(--border-radius-element) var(--border-radius-element) 0;
 }
 
 .tab-btn.active {
-	background: var(--color-primary-element, #0082c9);
-	border-color: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	background: var(--color-primary-element);
+	border-color: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 }
 
 /* ── Status ── */
 .lb-status {
 	padding: 32px;
 	text-align: center;
-	color: var(--color-text-lighter);
+	color: var(--color-text-maxcontrast);
 	font-size: 1rem;
 }
 
 .lb-error {
-	color: var(--color-error, #e9322d);
+	color: var(--color-text-error);
 }
 
 .lb-spinner {
@@ -189,7 +206,7 @@ onMounted(fetchScores)
 .lb-empty {
 	text-align: center;
 	padding: 48px 24px;
-	color: var(--color-text-lighter, #888);
+	color: var(--color-text-maxcontrast);
 	font-size: 1rem;
 }
 
@@ -199,15 +216,15 @@ onMounted(fetchScores)
 	gap: 12px;
 	padding: 12px 14px;
 	margin-bottom: 8px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large, 12px);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-element);
 	background: var(--color-main-background);
 	transition: background 0.12s;
 }
 
 .lb-entry.is-me {
-	border-color: var(--color-primary-element, #0082c9);
-	background: rgba(0, 130, 201, 0.06);
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element-light);
 }
 
 .lb-entry.rank-gold   { border-color: #f7971e; background: rgba(247, 151, 30, 0.07); }
@@ -227,8 +244,8 @@ onMounted(fetchScores)
 	width: 36px;
 	height: 36px;
 	border-radius: 50%;
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -253,17 +270,17 @@ onMounted(fetchScores)
 .you-badge {
 	font-size: 0.7rem;
 	font-weight: 700;
-	background: var(--color-primary-element, #0082c9);
-	color: var(--color-primary-element-text, #fff);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
 	padding: 2px 8px;
-	border-radius: var(--border-radius-pill, 20px);
+	border-radius: var(--border-radius-pill);
 	flex-shrink: 0;
 }
 
 .lb-score {
 	font-size: 0.95rem;
 	font-weight: 700;
-	color: var(--color-primary-element, #0082c9);
+	color: var(--color-primary-element);
 	flex-shrink: 0;
 }
 
@@ -271,9 +288,9 @@ onMounted(fetchScores)
 .lb-my-rank {
 	text-align: center;
 	padding: 16px;
-	color: var(--color-text-lighter, #888);
+	color: var(--color-text-maxcontrast);
 	font-size: 0.88rem;
-	border-top: 1px dashed var(--color-border);
+	border-top: 1px dashed var(--color-border-dark);
 	margin-top: 8px;
 }
 
