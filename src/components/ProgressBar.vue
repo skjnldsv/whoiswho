@@ -18,7 +18,11 @@
 				<span class="stat-value">{{ mastered }}/{{ total }}</span>
 			</div>
 			<div class="lives">
-				<span v-for="i in maxLives" :key="i" class="heart" :class="{ lost: i > lives }">
+				<span
+					v-for="i in maxLives"
+					:key="i"
+					class="heart"
+					:class="{ lost: i > lives }">
 					{{ i <= lives ? '❤️' : '🖤' }}
 				</span>
 			</div>

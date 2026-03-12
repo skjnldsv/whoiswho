@@ -7,7 +7,8 @@
 		<div class="card-inner">
 			<div class="card-front">
 				<div class="photo-frame">
-					<img :src="person.photo"
+					<img
+						:src="person.photo"
 						:alt="showName ? person.name : 'Team member'"
 						class="photo"
 						@error="onImgError">
@@ -16,17 +17,29 @@
 					</div>
 				</div>
 				<div v-if="showName" class="card-info">
-					<h3 class="name">{{ person.name }}</h3>
-					<p class="title">{{ person.title }}</p>
+					<h3 class="name">
+						{{ person.name }}
+					</h3>
+					<p class="title">
+						{{ person.title }}
+					</p>
 					<span class="dept-badge">{{ person.department }}</span>
 				</div>
 			</div>
 			<div class="card-back">
 				<div class="photo-frame small">
-					<img :src="person.photo" :alt="person.name" class="photo" @error="onImgError">
+					<img
+						:src="person.photo"
+						:alt="person.name"
+						class="photo"
+						@error="onImgError">
 				</div>
-				<h3 class="name">{{ person.name }}</h3>
-				<p class="title">{{ person.title }}</p>
+				<h3 class="name">
+					{{ person.name }}
+				</h3>
+				<p class="title">
+					{{ person.title }}
+				</p>
 				<span class="dept-badge">{{ person.department }}</span>
 			</div>
 		</div>
@@ -34,8 +47,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import type { TeamMember } from '../composables/useGameEngine'
+import type { TeamMember } from '../composables/useGameEngine.ts'
+
+import { computed, ref } from 'vue'
 
 const props = defineProps<{
 	person: TeamMember
@@ -48,15 +62,20 @@ const props = defineProps<{
 const imgFailed = ref(false)
 
 const fallbackInitials = computed(() => {
-	if (!imgFailed.value) return null
+	if (!imgFailed.value) {
+		return null
+	}
 	return props.person.name
 		.split(' ')
-		.map(p => p[0])
+		.map((p) => p[0])
 		.join('')
 		.substring(0, 2)
 		.toUpperCase()
 })
 
+/**
+ *
+ */
 function onImgError() {
 	imgFailed.value = true
 }

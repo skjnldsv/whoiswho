@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { ref } from 'vue'
+import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
-import { getCurrentUser } from '@nextcloud/auth'
+import { ref } from 'vue'
 
 export interface LeaderboardEntry {
 	user_id: string
@@ -27,6 +27,9 @@ interface OcsResponse<T> {
 	ocs: { data: T }
 }
 
+/**
+ *
+ */
 export function useLeaderboard() {
 	const allTime = ref<LeaderboardEntry[]>([])
 	const weekly = ref<LeaderboardEntry[]>([])
@@ -36,13 +39,14 @@ export function useLeaderboard() {
 	// Current Nextcloud user ID
 	const currentUser: string = getCurrentUser()?.uid ?? ''
 
+	/**
+	 *
+	 */
 	async function fetchScores(): Promise<void> {
 		loading.value = true
 		error.value = false
 		try {
-			const { data } = await axios.get<OcsResponse<LeaderboardData>>(
-				generateOcsUrl('apps/whoiswho/leaderboard'),
-			)
+			const { data } = await axios.get<OcsResponse<LeaderboardData>>(generateOcsUrl('apps/whoiswho/leaderboard'))
 			allTime.value = data.ocs.data.allTime ?? []
 			weekly.value = data.ocs.data.weekly ?? []
 		} catch {
@@ -52,8 +56,14 @@ export function useLeaderboard() {
 		}
 	}
 
+	/**
+	 *
+	 * @param xpEarned The XP score to submit
+	 */
 	async function submitScore(xpEarned: number): Promise<void> {
-		if (xpEarned <= 0) return
+		if (xpEarned <= 0) {
+			return
+		}
 		try {
 			await axios.post(generateOcsUrl('apps/whoiswho/leaderboard/score'), { score: xpEarned })
 		} catch {

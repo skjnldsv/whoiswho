@@ -6,14 +6,15 @@
 	<div class="game-screen">
 		<!-- ── Header: progress bar ── -->
 		<div class="game-header">
-			<ProgressBar :level="progress.level"
+			<ProgressBar
+				:level="progress.level"
 				:xp="progress.xp"
 				:progress="levelProgress"
 				:streak="sessionStats.streak"
 				:mastered="masteredCount"
 				:total="totalCount"
 				:lives="lives"
-				:max-lives="maxLives" />
+				:maxLives="maxLives" />
 		</div>
 
 		<!-- ── Two-column body ── -->
@@ -35,7 +36,7 @@
 						</div>
 						<PersonCard v-else
 							:person="currentChallenge.person"
-							:show-name="currentChallenge.type === 'meet'"
+							:showName="currentChallenge.type === 'meet'"
 							:flipped="showingResult && currentChallenge.type !== 'meet'"
 							:correct="showingResult && lastAnswerCorrect"
 							:wrong="showingResult && !lastAnswerCorrect" />
@@ -47,14 +48,12 @@
 			<div class="challenge-column">
 				<!-- Challenge input (animates per challenge) -->
 				<Transition name="fade" mode="out-in">
-					<div :key="currentChallenge.seq"
-						class="input-area"
-						:class="{ 'pick-face': currentChallenge.type === 'pick-face' }">
+					<div :key="currentChallenge.seq" class="input-area" :class="{ 'pick-face': currentChallenge.type === 'pick-face' }">
 						<ChallengeInput
 							:challenge="currentChallenge"
-							:showing-result="showingResult"
-							:eliminated-options="eliminatedOptions"
-							:revealed-mask="revealedMask ?? null"
+							:showingResult="showingResult"
+							:eliminatedOptions="eliminatedOptions"
+							:revealedMask="revealedMask ?? null"
 							@answer="handleAnswerFromInput" />
 					</div>
 				</Transition>
@@ -64,7 +63,8 @@
 					💡 {{ hintText }}
 				</div>
 				<div v-if="!showingResult && currentChallenge.type !== 'meet'" class="hint-skip-row">
-					<button v-if="hintLevel < 2"
+					<button
+						v-if="hintLevel < 2"
 						class="btn-hint"
 						:disabled="progress.xp < (hintLevel === 0 ? 10 : 15)"
 						:title="hintLevel === 0
@@ -84,7 +84,8 @@
 				<!-- ── Action bar: result + button ── -->
 				<div class="action-area">
 					<Transition name="fade">
-						<div v-if="showingResult && currentChallenge.type !== 'meet'"
+						<div
+							v-if="showingResult && currentChallenge.type !== 'meet'"
 							class="result-msg"
 							:class="{
 								'result-correct': lastAnswerCorrect,
@@ -97,13 +98,15 @@
 							<span v-else>It's <strong>{{ currentChallenge.correctAnswer }}</strong></span>
 						</div>
 					</Transition>
-					<button v-if="currentChallenge.type === 'meet' && !showingResult"
+					<button
+						v-if="currentChallenge.type === 'meet' && !showingResult"
 						class="btn-action"
 						:disabled="answered"
 						@click="handleMeet">
 						Got it <kbd>↵</kbd>
 					</button>
-					<button v-else-if="showingResult && currentChallenge.type !== 'meet'"
+					<button
+						v-else-if="showingResult && currentChallenge.type !== 'meet'"
 						class="btn-action"
 						:class="{ 'btn-action--auto-advancing': autoAdvancing }"
 						:style="autoAdvancing ? { '--auto-progress-duration': AUTO_SKIP_DELAY_MS + 'ms' } : {}"
@@ -130,21 +133,26 @@
 
 		<!-- Confetti -->
 		<div v-if="showConfetti" class="confetti-container">
-			<div v-for="i in 30" :key="i" class="confetti-piece" :style="confettiStyle(i)" />
+			<div
+				v-for="i in 30"
+				:key="i"
+				class="confetti-piece"
+				:style="confettiStyle(i)" />
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { t } from '@nextcloud/l10n'
+import type { Challenge } from '../composables/useGameEngine.ts'
+import type { SessionStats } from '../composables/useGameEngine.ts'
+import type { GameProgress } from '../composables/useStorage.ts'
+
 import { useHotKey } from '@nextcloud/vue'
-import { XP_PER_STAGE, CLOSE_ANSWER_XP_DIVISOR } from '../composables/useGameEngine'
-import type { Challenge, SessionStats } from '../composables/useGameEngine'
-import type { GameProgress } from '../composables/useStorage'
+import { ref, watch } from 'vue'
 import ChallengeInput from './ChallengeInput.vue'
 import PersonCard from './PersonCard.vue'
 import ProgressBar from './ProgressBar.vue'
+import { CLOSE_ANSWER_XP_DIVISOR, XP_PER_STAGE } from '../composables/useGameEngine.ts'
 
 const props = defineProps<{
 	currentChallenge: Challenge | null
@@ -195,8 +203,14 @@ const autoAdvancing = ref(false)
 let autoSkipTimeoutId: ReturnType<typeof setTimeout> | null = null
 const AUTO_SKIP_DELAY_MS = 3000 // ms before auto-advancing to next challenge
 
+/**
+ *
+ */
 function clearAutoSkipTimers() {
-	if (autoSkipTimeoutId !== null) { clearTimeout(autoSkipTimeoutId); autoSkipTimeoutId = null }
+	if (autoSkipTimeoutId !== null) {
+		clearTimeout(autoSkipTimeoutId)
+		autoSkipTimeoutId = null
+	}
 	autoAdvancing.value = false
 }
 
@@ -212,7 +226,9 @@ watch(() => props.currentChallenge, () => {
 watch(() => props.sessionStats.streak, (streak) => {
 	if (streak > 0 && streak % 5 === 0) {
 		streakMilestone.value = streak
-		setTimeout(() => { streakMilestone.value = 0 }, 2000)
+		setTimeout(() => {
+			streakMilestone.value = 0
+		}, 2000)
 	}
 })
 
@@ -220,7 +236,9 @@ watch(() => props.sessionStats.streak, (streak) => {
 watch(() => props.sessionStats.newlyMastered, (list) => {
 	if (list.length > 0) {
 		showConfetti.value = true
-		setTimeout(() => { showConfetti.value = false }, 3000)
+		setTimeout(() => {
+			showConfetti.value = false
+		}, 3000)
 	}
 }, { deep: true })
 
@@ -241,32 +259,54 @@ watch(() => props.showingResult, (showing) => {
 		if (props.lastAnswerCorrect && props.currentChallenge.type === 'meet') {
 			// Auto-advance meet cards after a short pause
 			setTimeout(() => {
-				if (advancing.value) return
+				if (advancing.value) {
+					return
+				}
 				advancing.value = true
-				props.gameOver ? emit('end') : emit('next')
+				if (props.gameOver) {
+					emit('end')
+				} else {
+					emit('next')
+				}
 			}, 800)
 		} else if (props.currentChallenge.type !== 'meet') {
 			// Auto-skip: fill Next button with a gradient over AUTO_SKIP_DELAY_MS
 			autoAdvancing.value = true
-			autoSkipTimeoutId = setTimeout(() => { handleNext() }, AUTO_SKIP_DELAY_MS)
+			autoSkipTimeoutId = setTimeout(() => {
+				handleNext()
+			}, AUTO_SKIP_DELAY_MS)
 		}
 	} else if (!showing) {
 		clearAutoSkipTimers()
 	}
 })
 
+/**
+ *
+ * @param answer The answer string from the ChallengeInput component
+ */
 function handleAnswerFromInput(answer: string) {
 	emit('answer', answer)
 }
 
+/**
+ *
+ */
 function handleMeet() {
-	if (answered.value) return
+	if (answered.value) {
+		return
+	}
 	answered.value = true
 	emit('answer', 'ok')
 }
 
+/**
+ *
+ */
 function handleNext() {
-	if (advancing.value) return
+	if (advancing.value) {
+		return
+	}
 	advancing.value = true
 	clearAutoSkipTimers()
 	if (props.gameOver) {
@@ -276,22 +316,40 @@ function handleNext() {
 	}
 }
 
+/**
+ *
+ */
 function handleSkip() {
-	if (answered.value || props.showingResult) return
+	if (answered.value || props.showingResult) {
+		return
+	}
 	answered.value = true
 	emit('skip')
 }
 
+/**
+ *
+ */
 function requestHint() {
 	emit('hint')
 }
 
+/**
+ *
+ * @param amount The XP amount to display in the popup
+ */
 function triggerXpPopup(amount: number) {
 	xpPopup.value = amount
 	xpPopupKey.value++
-	setTimeout(() => { xpPopup.value = 0 }, 1500)
+	setTimeout(() => {
+		xpPopup.value = 0
+	}, 1500)
 }
 
+/**
+ *
+ * @param i The confetti piece index
+ */
 function confettiStyle(i: number) {
 	const colors = ['#f7971e', '#ffd200', '#0082c9', '#764ba2', '#2ecc71', '#e74c3c', '#3498db']
 	return {
@@ -302,7 +360,7 @@ function confettiStyle(i: number) {
 	}
 }
 
-// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+// ── Keyboard shortcuts ────────────────────────────────────────────────
 
 // Enter → Got it (meet) or advance when showing result
 useHotKey((e) => e.key === 'Enter', (e) => {
@@ -330,7 +388,7 @@ useHotKey('h', () => {
 </script>
 
 <style scoped>
-/* ── Outer shell ─────────────────────────────────*/
+/* ── Outer shell ─────────────────────────────────────────────────*/
 .game-screen {
 	width: 100%;
 	height: 100%;
@@ -341,14 +399,14 @@ useHotKey('h', () => {
 	color: var(--color-main-text);
 }
 
-/* ── Header ──────────────────────────────────────*/
+/* ── Header ────────────────────────────────────────────────────*/
 .game-header {
 	flex-shrink: 0;
 	padding: 10px 20px 12px;
 	border-bottom: 1px solid var(--color-border);
 }
 
-/* ── Two-column body ─────────────────────────────*/
+/* ── Two-column body ───────────────────────────────────────────────*/
 .game-body {
 	flex: 1;
 	min-height: 0;
@@ -356,7 +414,7 @@ useHotKey('h', () => {
 	overflow: hidden;
 }
 
-/* ── Left: photo card ────────────────────────────*/
+/* ── Left: photo card ──────────────────────────────────────────────*/
 .card-column {
 	flex: 0 0 min(300px, 42%);
 	display: flex;
@@ -375,7 +433,7 @@ useHotKey('h', () => {
 	width: 100%;
 }
 
-/* ── Right: interaction ──────────────────────────*/
+/* ── Right: interaction ──────────────────────────────────────────────*/
 .challenge-column {
 	flex: 1;
 	min-width: 0;
@@ -405,7 +463,7 @@ useHotKey('h', () => {
 	flex: 1;
 }
 
-/* ── Stage badge ─────────────────────────────────*/
+/* ── Stage badge ──────────────────────────────────────────────────*/
 .stage-tag {
 	display: inline-flex;
 	align-items: center;
@@ -427,7 +485,7 @@ useHotKey('h', () => {
 
 .stage-tag.type        { background: #e74c3c; color: #fff; }
 
-/* ── Hint ────────────────────────────────────────*/
+/* ── Hint ──────────────────────────────────────────────────────*/
 .hint-bubble {
 	background: var(--color-background-dark);
 	border: 1px solid var(--color-border-dark);
@@ -459,7 +517,7 @@ useHotKey('h', () => {
 
 .btn-hint:disabled { opacity: 0.4; cursor: default; }
 
-/* ── Hint + skip row ─────────────────────────────*/
+/* ── Hint + skip row ───────────────────────────────────────────────*/
 .hint-skip-row {
 	display: flex;
 	align-items: center;
@@ -468,7 +526,7 @@ useHotKey('h', () => {
 	flex-shrink: 0;
 }
 
-/* ── "I don't know" skip button ──────────────────*/
+/* ── "I don't know" skip button ──────────────────────────────────────────*/
 .btn-skip {
 	margin: 0;
 	padding: 6px 14px;
@@ -487,7 +545,7 @@ useHotKey('h', () => {
 	color: var(--color-main-text);
 }
 
-/* ── Keyboard shortcut labels ────────────────────*/
+/* ── Keyboard shortcut labels ────────────────────────────────────────────*/
 kbd {
 	display: inline-block;
 	padding: 1px 5px;
@@ -500,7 +558,7 @@ kbd {
 	line-height: 1.4;
 }
 
-/* ── Action area ─────────────────────────────────*/
+/* ── Action area ─────────────────────────────────────────────────*/
 .action-area {
 	flex-shrink: 0;
 	display: flex;
@@ -587,7 +645,7 @@ kbd {
 	initial-value: 0%;
 }
 
-/* ── Responsive: stack on narrow screens ─────────*/
+/* ── Responsive: stack on narrow screens ─────────────────────────────────────*/
 @media (max-width: 680px) {
 	.game-body {
 		flex-direction: column;
@@ -610,7 +668,7 @@ kbd {
 	}
 }
 
-/* ── Name badge (pick-face left column) ──────────*/
+/* ── Name badge (pick-face left column) ─────────────────────────────────────*/
 .name-badge {
 	display: flex;
 	flex-direction: column;
@@ -661,7 +719,7 @@ kbd {
 	letter-spacing: 0.06em;
 }
 
-/* ── Overlays ─────────────────────────────────────*/
+/* ── Overlays ─────────────────────────────────────────────────────*/
 .xp-popup {
 	position: fixed;
 	top: 45%;
@@ -716,7 +774,7 @@ kbd {
 	100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
 
-/* ── Transitions ──────────────────────────────────*/
+/* ── Transitions ────────────────────────────────────────────────────*/
 .fade-enter-active,
 .fade-leave-active {
 	transition: opacity 0.18s ease;
@@ -755,6 +813,7 @@ kbd {
 	70%  { transform: translate(-50%, -50%) scale(1.1); }
 	100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
+
 @keyframes popOut {
 	0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 	100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }

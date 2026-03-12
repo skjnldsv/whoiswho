@@ -6,7 +6,9 @@
 	<div class="leaderboard-screen">
 		<!-- Header -->
 		<div class="lb-header">
-			<h2 class="lb-title">🏆 Leaderboard</h2>
+			<h2 class="lb-title">
+				🏆 Leaderboard
+			</h2>
 			<button class="btn-back" @click="emit('close')">
 				← Back
 			</button>
@@ -14,10 +16,10 @@
 
 		<!-- Tabs -->
 		<div class="lb-tabs">
-			<button :class="['tab-btn', { active: tab === 'weekly' }]" @click="tab = 'weekly'">
+			<button class="tab-btn" :class="[{ active: tab === 'weekly' }]" @click="tab = 'weekly'">
 				📅 This Week
 			</button>
-			<button :class="['tab-btn', { active: tab === 'alltime' }]" @click="tab = 'alltime'">
+			<button class="tab-btn" :class="[{ active: tab === 'alltime' }]" @click="tab = 'alltime'">
 				🏅 All Time
 			</button>
 		</div>
@@ -36,7 +38,8 @@
 				No scores yet — be the first! 🚀
 			</div>
 
-			<div v-for="(entry, i) in currentList"
+			<div
+				v-for="(entry, i) in currentList"
 				:key="entry.user_id"
 				class="lb-entry"
 				:class="{
@@ -65,10 +68,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useLeaderboard } from '../composables/useLeaderboard'
-import { rankLabel } from '../utils/strings'
-import type { LeaderboardEntry } from '../composables/useLeaderboard'
+import type { LeaderboardEntry } from '../composables/useLeaderboard.ts'
+
+import { computed, onMounted, ref } from 'vue'
+import { useLeaderboard } from '../composables/useLeaderboard.ts'
+import { rankLabel } from '../utils/strings.ts'
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -76,15 +80,17 @@ const { allTime, weekly, loading, error, currentUser, fetchScores } = useLeaderb
 
 const tab = ref<'weekly' | 'alltime'>('weekly')
 
-const currentList = computed<LeaderboardEntry[]>(() =>
-	tab.value === 'weekly' ? weekly.value : allTime.value,
-)
+const currentList = computed<LeaderboardEntry[]>(() => tab.value === 'weekly' ? weekly.value : allTime.value)
 
 const myRank = computed(() => {
-	const idx = currentList.value.findIndex(e => e.user_id === currentUser)
+	const idx = currentList.value.findIndex((e) => e.user_id === currentUser)
 	return idx >= 0 ? idx + 1 : 0
 })
 
+/**
+ *
+ * @param entry The leaderboard entry
+ */
 function avatarLetter(entry: LeaderboardEntry): string {
 	const name = entry.display_name || entry.user_id
 	return name.charAt(0).toUpperCase()

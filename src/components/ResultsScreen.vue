@@ -5,8 +5,12 @@
 <template>
 	<div class="results-screen">
 		<div class="results-card">
-			<h2 v-if="stats.wrong >= 3" class="title">💔 Game Over</h2>
-			<h2 v-else class="title">🎉 Session Complete!</h2>
+			<h2 v-if="stats.wrong >= 3" class="title">
+				💔 Game Over
+			</h2>
+			<h2 v-else class="title">
+				🎉 Session Complete!
+			</h2>
 
 			<div class="big-stats">
 				<div class="big-stat">
@@ -67,8 +71,9 @@
 </template>
 
 <script setup lang="ts">
+import type { SessionStats } from '../composables/useGameEngine.ts'
+
 import { computed } from 'vue'
-import type { SessionStats } from '../composables/useGameEngine'
 
 const props = defineProps<{
 	stats: SessionStats
@@ -84,7 +89,9 @@ defineEmits<{
 }>()
 
 const accuracy = computed(() => {
-	if (props.stats.answered === 0) return 0
+	if (props.stats.answered === 0) {
+		return 0
+	}
 	return Math.round((props.stats.correct / props.stats.answered) * 100)
 })
 </script>
