@@ -35,6 +35,16 @@ export interface GameProgress {
 	lastPlayed: number
 	currentLives: number // persisted lives to prevent force-close exploit
 	sessionActive: boolean // whether a session is currently in progress
+	// Per-challenge-type correct counts (for achievement tracking)
+	meetCount: number
+	recognizeCorrect: number
+	pickFaceCorrect: number
+	recallCorrect: number // covers both "recall" and "type" challenge types
+	// Speed tracking
+	fastAnswerCount: number // timed answers completed under 3 s
+	veryFastAnswerCount: number // timed answers completed under 2 s
+	// Date tracking for day-streak and weekend achievements
+	playDates: string[] // YYYY-MM-DD dates when user played
 }
 
 /**
@@ -53,6 +63,13 @@ export function defaultProgress(): GameProgress {
 		lastPlayed: 0,
 		currentLives: MAX_LIVES,
 		sessionActive: false,
+		meetCount: 0,
+		recognizeCorrect: 0,
+		pickFaceCorrect: 0,
+		recallCorrect: 0,
+		fastAnswerCount: 0,
+		veryFastAnswerCount: 0,
+		playDates: [],
 	}
 }
 

@@ -42,6 +42,12 @@
 					</button>
 				</template>
 			</div>
+
+			<div class="secondary-actions">
+				<button class="btn-link" @click="$emit('achievements')">
+					🏆 Achievements ({{ props.unlockedAchievementCount }})
+				</button>
+			</div>
 		</div>
 
 		<!-- Bottom: two columns -->
@@ -141,11 +147,13 @@ const props = defineProps<{
 	loading: boolean
 	loadError: boolean
 	progress: GameProgress
+	unlockedAchievementCount: number
 }>()
 defineEmits<{
 	start: []
 	reset: []
 	leaderboard: []
+	achievements: []
 	retry: []
 }>()
 const HERO_EMOJIS = ['🧑‍🤝‍🧑', '👫', '👬', '👭', '🫂']
@@ -228,6 +236,11 @@ h1 {
 	align-items: center;
 	gap: 12px;
 	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.secondary-actions {
+	display: flex;
 	justify-content: center;
 }
 
