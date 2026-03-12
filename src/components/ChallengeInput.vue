@@ -5,15 +5,22 @@
 <template>
 	<!-- Meet: see and remember -->
 	<div v-if="challenge.type === 'meet'" class="meet-area">
-		<p class="prompt">Remember this person!</p>
-		<p class="sub-prompt">Name, title, and department — then click Got it.</p>
+		<p class="prompt">
+			Remember this person!
+		</p>
+		<p class="sub-prompt">
+			Name, title, and department — then click Got it.
+		</p>
 	</div>
 
 	<!-- Recognize: multiple choice -->
 	<div v-else-if="challenge.type === 'recognize'" class="choice-area">
-		<p class="prompt">Who is this person?</p>
+		<p class="prompt">
+			Who is this person?
+		</p>
 		<div class="choice-grid">
-			<button v-for="option in challenge.options"
+			<button
+				v-for="option in challenge.options"
 				:key="option"
 				class="choice-btn"
 				:class="{
@@ -31,9 +38,12 @@
 
 	<!-- Pick-face: choose the photo that matches the name -->
 	<div v-else-if="challenge.type === 'pick-face'" class="pick-face-area">
-		<p class="prompt">Find this person's face:</p>
+		<p class="prompt">
+			Find this person's face:
+		</p>
 		<div class="face-grid">
-			<button v-for="member in challenge.photoOptions"
+			<button
+				v-for="member in challenge.photoOptions"
 				:key="member.id"
 				class="face-option"
 				:class="{
@@ -52,18 +62,24 @@
 
 	<!-- Recall: fill in blanks -->
 	<div v-else-if="challenge.type === 'recall'" class="recall-area">
-		<p class="prompt">Complete the name:</p>
-		<p class="masked-name">{{ revealedMask || challenge.maskedName }}</p>
+		<p class="prompt">
+			Complete the name:
+		</p>
+		<p class="masked-name">
+			{{ revealedMask || challenge.maskedName }}
+		</p>
 		<div class="type-input-row">
-			<input ref="recallInput"
+			<input
+				ref="recallInput"
 				v-model="typedAnswer"
 				type="text"
 				class="name-input"
-				placeholder="Type the full name\u2026"
+				placeholder="Type the full name…"
 				:disabled="showingResult"
 				autocomplete="off"
 				@keydown.enter="handleTypedSubmit">
-			<button class="btn-submit"
+			<button
+				class="btn-submit"
 				:disabled="showingResult || !typedAnswer.trim()"
 				:aria-label="t('whoiswho', 'Submit answer')"
 				@click="handleTypedSubmit">
@@ -74,20 +90,24 @@
 
 	<!-- Type: free recall -->
 	<div v-else-if="challenge.type === 'type'" class="type-area">
-		<p class="prompt">Type this person's full name:</p>
+		<p class="prompt">
+			Type this person's full name:
+		</p>
 		<div v-if="revealedMask" class="mask-hint">
 			🔤 {{ revealedMask }}
 		</div>
 		<div class="type-input-row">
-			<input ref="typeInput"
+			<input
+				ref="typeInput"
 				v-model="typedAnswer"
 				type="text"
 				class="name-input"
-				placeholder="Full name\u2026"
+				placeholder="Full name…"
 				:disabled="showingResult"
 				autocomplete="off"
 				@keydown.enter="handleTypedSubmit">
-			<button class="btn-submit"
+			<button
+				class="btn-submit"
 				:disabled="showingResult || !typedAnswer.trim()"
 				:aria-label="t('whoiswho', 'Submit answer')"
 				@click="handleTypedSubmit">
@@ -98,10 +118,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, useTemplateRef } from 'vue'
+import type { Challenge } from '../composables/useGameEngine.ts'
+
 import { t } from '@nextcloud/l10n'
 import { useHotKey } from '@nextcloud/vue'
-import type { Challenge } from '../composables/useGameEngine'
+import { nextTick, ref, useTemplateRef, watch } from 'vue'
 
 const props = defineProps<{
 	challenge: Challenge
@@ -132,29 +153,46 @@ watch(() => props.challenge, async () => {
 	typeInput.value?.focus()
 })
 
+/**
+ *
+ * @param option The selected option text or photo owner name
+ */
 function handleChoiceClick(option: string) {
-	if (emitted.value || props.showingResult) return
+	if (emitted.value || props.showingResult) {
+		return
+	}
 	emitted.value = true
 	chosenAnswer.value = option
 	emit('answer', option)
 }
 
+/**
+ *
+ */
 function handleTypedSubmit() {
-	if (!typedAnswer.value.trim() || emitted.value || props.showingResult) return
+	if (!typedAnswer.value.trim() || emitted.value || props.showingResult) {
+		return
+	}
 	emitted.value = true
 	emit('answer', typedAnswer.value)
 }
 
 // 1–4 → select choice / face (recognize / pick-face)
 useHotKey(['1', '2', '3', '4'], (e) => {
-	if (props.showingResult || emitted.value) return
+	if (props.showingResult || emitted.value) {
+		return
+	}
 	const idx = parseInt(e.key) - 1
 	if (props.challenge.type === 'recognize' && props.challenge.options) {
-		const visible = props.challenge.options.filter(o => !props.eliminatedOptions.includes(o))
-		if (visible[idx] !== undefined) handleChoiceClick(visible[idx])
+		const visible = props.challenge.options.filter((o) => !props.eliminatedOptions.includes(o))
+		if (visible[idx] !== undefined) {
+			handleChoiceClick(visible[idx])
+		}
 	} else if (props.challenge.type === 'pick-face' && props.challenge.photoOptions) {
-		const visible = props.challenge.photoOptions.filter(m => !props.eliminatedOptions.includes(m.name))
-		if (visible[idx] !== undefined) handleChoiceClick(visible[idx].name)
+		const visible = props.challenge.photoOptions.filter((m) => !props.eliminatedOptions.includes(m.name))
+		if (visible[idx] !== undefined) {
+			handleChoiceClick(visible[idx].name)
+		}
 	}
 })
 </script>
