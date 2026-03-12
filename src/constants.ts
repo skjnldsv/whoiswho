@@ -65,10 +65,10 @@ export const MEET_AUTO_ADVANCE_MS = 800
 /** Time limit per challenge type (0 = no timer). */
 export const ANSWER_TIME_LIMITS = {
 	meet: 0,
-	recognize: 15_000,
-	'pick-face': 15_000,
-	recall: 20_000,
-	type: 30_000,
+	recognize: 5_000,
+	'pick-face': 5_000,
+	recall: 10_000,
+	type: 15_000,
 } as const
 
 /** Bonus XP awarded for answering faster than FAST_ANSWER_THRESHOLD of the time limit. */
