@@ -1007,6 +1007,7 @@ kbd {
 	flex: 1;
 	min-height: 0;
 	overflow: hidden;
+	padding: 4px;
 }
 
 .face-grid {
