@@ -3,39 +3,47 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+import type { TeamMember } from '../types.ts'
+import type { Challenge } from './useChallengeBuilder.ts'
+
 import axios from '@nextcloud/axios'
+import { showError } from '@nextcloud/dialogs'
 import { generateOcsUrl } from '@nextcloud/router'
 import { computed, ref } from 'vue'
-import { levenshtein, normalizeText } from '../utils/strings.ts'
+import {
+	CLOSE_ANSWER_THRESHOLD,
+	HINT_COST_FIRST,
+	HINT_COST_SECOND,
+	MAX_LIVES,
+	PLACEHOLDER_PHOTO,
+	REVEAL_FRACTION,
+	REVEAL_MIN_COUNT,
+} from '../constants.ts'
+import { levenshtein, normalizeText, shuffle } from '../utils/strings.ts'
+import { buildChallenge, generateMaskedName } from './useChallengeBuilder.ts'
+import {
+	applyXp,
+	computeLevelProgress,
+	recordClose,
+	recordCorrect,
+	recordSkip,
+	recordWrong,
+} from './useScoring.ts'
+import { pickNextPerson } from './useSpacedRepetition.ts'
 import {
 	type GameProgress,
-	type PersonProgress,
 
-	getPersonProgress,
 	loadProgress,
 	saveProgress,
 } from './useStorage.ts'
 
-export interface TeamMember {
-	id: number
-	name: string
-	title: string
-	department: string
-	photo: string
-}
+// Re-export TeamMember so consumers can import it from here for backward compat
+export type { TeamMember } from '../types.ts'
 
-// Challenge types matching the 4 stages
-export type ChallengeType = 'meet' | 'recognize' | 'pick-face' | 'recall' | 'type'
-
-export interface Challenge {
-	seq: number // monotonic counter — always changes, so Vue's Transition always animates
-	type: ChallengeType
-	person: TeamMember
-	options?: string[] // for recognize: pick name from list
-	photoOptions?: TeamMember[] // for pick-face: pick photo from grid
-	maskedName?: string // for recall stage
-	correctAnswer: string
-}
+// Re-export types from sub-composables so consumers don't need to import both
+export type { Challenge, ChallengeType } from './useChallengeBuilder.ts'
+export { XP_PER_STAGE } from './useScoring.ts'
+export { CLOSE_ANSWER_XP_DIVISOR } from '../constants.ts'
 
 export interface SessionStats {
 	answered: number
@@ -47,48 +55,14 @@ export interface SessionStats {
 	newlyMastered: string[]
 }
 
-// Spaced repetition intervals (ms)
-const INTERVALS = [
-	0, // stage 0: unseen
-	0, // stage 1: meet — immediate
-	30_000, // stage 2: recognize — 30s
-	120_000, // stage 3: recall — 2min
-	600_000, // stage 4: mastered — 10min
-]
-
-export const XP_PER_STAGE: Record<ChallengeType, number> = {
-	meet: 5,
-	recognize: 15,
-	'pick-face': 15,
-	recall: 25,
-	type: 40,
-}
-
-const STAGE_TO_TYPE: ChallengeType[] = ['meet', 'recognize', 'recognize', 'recall', 'type']
-
-const PLACEHOLDER_PHOTO = 'https://nextcloud.com/c/themes/nextcloud-theme/dist/img/person.jpg'
-
-// Pool size — how many people we juggle at once
-const ACTIVE_POOL_SIZE = 6
-
-// Close-answer tuning
-const CLOSE_ANSWER_THRESHOLD = 2 // max Levenshtein distance to be "close"
-export const CLOSE_ANSWER_XP_DIVISOR = 4 // close answers earn 1/4 of full XP
-
-// Second-hint reveal tuning
-const REVEAL_MIN_COUNT = 2 // minimum letters to reveal
-const REVEAL_FRACTION = 1 / 3 // fraction of hidden letters to reveal
-
-// Monotonic counter — ensures Vue's Transition always sees a new key even when person+type stays the same
-let challengeSeq = 0
-
 // OCS response envelope
 interface OcsResponse<T> {
 	ocs: { data: T }
 }
 
 /**
- *
+ * Central game engine composable.
+ * Orchestrates spaced repetition, challenge building, scoring, and session state.
  */
 export function useGameEngine() {
 	const progress = ref<GameProgress>(loadProgress())
@@ -102,8 +76,8 @@ export function useGameEngine() {
 		xpEarned: 0,
 		newlyMastered: [],
 	})
-	const lives = ref(3)
-	const maxLives = 3
+	const lives = ref(MAX_LIVES)
+	const maxLives = MAX_LIVES
 	const gameOver = ref(false)
 	const showingResult = ref(false)
 	const lastAnswerCorrect = ref(false)
@@ -116,29 +90,39 @@ export function useGameEngine() {
 	const loading = ref(true)
 	const loadError = ref(false)
 
-	axios.get<OcsResponse<TeamMember[]>>(generateOcsUrl('apps/whoiswho/team'))
-		.then(({ data }) => { allMembersRaw.value = data.ocs.data })
-		.catch(() => { loadError.value = true })
-		.finally(() => { loading.value = false })
+	/**
+	 * Fetch team members from the backend API.
+	 */
+	async function fetchTeamMembers() {
+		loading.value = true
+		loadError.value = false
+		try {
+			const { data } = await axios.get<OcsResponse<TeamMember[]>>(generateOcsUrl('apps/whoiswho/team'))
+			allMembersRaw.value = data.ocs.data
+		} catch {
+			loadError.value = true
+			showError('Could not load team members. Please check your connection and try again.')
+		} finally {
+			loading.value = false
+		}
+	}
+
+	// Kick off the initial fetch
+	fetchTeamMembers()
 
 	const allMembers = computed(() => allMembersRaw.value.filter((m) => m.photo && m.name && m.photo !== PLACEHOLDER_PHOTO))
 
-	const masteredCount = computed(() => {
-		return allMembers.value.filter((m) => {
-			const p = progress.value.people[m.id]
-			return p && p.stage >= 4
-		}).length
-	})
+	const masteredCount = computed(() => allMembers.value.filter((m) => {
+		const p = progress.value.people[m.id]
+		return p && p.stage >= 4
+	}).length)
 
 	const totalCount = computed(() => allMembers.value.length)
 
-	const levelProgress = computed(() => {
-		const xpForLevel = progress.value.level * 100
-		return Math.min((progress.value.xp % xpForLevel) / xpForLevel, 1)
-	})
+	const levelProgress = computed(() => computeLevelProgress(progress.value))
 
 	/**
-	 *
+	 * Reset session statistics and start a new session.
 	 */
 	function startSession() {
 		sessionStats.value = {
@@ -150,7 +134,7 @@ export function useGameEngine() {
 			xpEarned: 0,
 			newlyMastered: [],
 		}
-		lives.value = maxLives
+		lives.value = MAX_LIVES
 		gameOver.value = false
 		progress.value.sessionsPlayed++
 		progress.value.lastPlayed = Date.now()
@@ -159,177 +143,27 @@ export function useGameEngine() {
 	}
 
 	/**
-	 *
-	 */
-	function pickNextPerson(): TeamMember | null {
-		const now = Date.now()
-		const members = allMembers.value
-
-		if (members.length === 0) {
-			return null
-		}
-
-		const unseen: TeamMember[] = []
-		const dueForReview: { member: TeamMember, priority: number }[] = []
-		const active: { member: TeamMember, pp: PersonProgress }[] = []
-
-		for (const m of members) {
-			const pp = progress.value.people[m.id]
-			if (!pp || pp.stage === 0) {
-				unseen.push(m)
-			} else if (pp.stage >= 4) {
-				if (now >= pp.nextReview) {
-					dueForReview.push({ member: m, priority: now - pp.nextReview })
-				}
-			} else {
-				active.push({ member: m, pp })
-			}
-		}
-
-		// Helper: prefer members that aren't the last-shown person
-		/**
-		 *
-		 * @param arr The array of team members to filter
-		 */
-		function preferNotLast(arr: TeamMember[]): TeamMember[] {
-			const filtered = arr.filter((m) => m.id !== lastPersonId.value)
-			return filtered.length > 0 ? filtered : arr
-		}
-
-		const overdue = active
-			.filter((a) => now >= a.pp.nextReview)
-			.sort((a, b) => a.pp.nextReview - b.pp.nextReview)
-
-		let result: TeamMember | null
-
-		if (overdue.length > 0) {
-			const withErrors = overdue.filter((a) => a.pp.totalWrong > a.pp.totalCorrect)
-			if (withErrors.length > 0) {
-				const pool = preferNotLast(withErrors.map((a) => a.member))
-				result = pool[Math.floor(Math.random() * pool.length)]
-			} else {
-				const pool = preferNotLast(overdue.map((a) => a.member))
-				result = pool[0]
-			}
-		} else if (active.length < ACTIVE_POOL_SIZE && unseen.length > 0) {
-			const pool = preferNotLast(unseen)
-			result = pool[Math.floor(Math.random() * pool.length)]
-		} else if (active.length > 0) {
-			active.sort((a, b) => a.pp.nextReview - b.pp.nextReview)
-			const pool = preferNotLast(active.map((a) => a.member))
-			result = pool[0]
-		} else if (dueForReview.length > 0) {
-			dueForReview.sort((a, b) => b.priority - a.priority)
-			const pool = preferNotLast(dueForReview.map((a) => a.member))
-			result = pool[0]
-		} else if (unseen.length > 0) {
-			const pool = preferNotLast(unseen)
-			result = pool[Math.floor(Math.random() * pool.length)]
-		} else {
-			const allWithProgress = members
-				.map((m) => ({ member: m, pp: progress.value.people[m.id] }))
-				.filter((a) => a.pp)
-				.sort((a, b) => a.pp.lastSeen - b.pp.lastSeen)
-
-			result = allWithProgress.length > 0 ? allWithProgress[0].member : members[0]
-		}
-
-		if (result) {
-			lastPersonId.value = result.id
-		}
-		return result
-	}
-
-	/**
-	 *
-	 * @param name The person's full name
-	 */
-	function generateMaskedName(name: string): string {
-		const parts = name.split(' ')
-		return parts.map((part, i) => {
-			if (i === 0) {
-				return part[0] + part.slice(1).replace(/[a-zA-ZÀ-ÿ]/g, '_')
-			}
-			if (part.length <= 2) {
-				return part
-			}
-			return part[0] + part.slice(1).replace(/[a-zA-ZÀ-ÿ]/g, '_')
-		}).join(' ')
-	}
-
-	/**
-	 *
-	 * @param correct The correct team member
-	 * @param count The number of options to generate
-	 */
-	function getRandomOptions(correct: TeamMember, count: number): string[] {
-		const others = allMembers.value.filter((m) => m.id !== correct.id)
-		const shuffled = others.sort(() => Math.random() - 0.5).slice(0, count - 1)
-		const options = [...shuffled.map((m) => m.name), correct.name]
-		return options.sort(() => Math.random() - 0.5)
-	}
-
-	/**
-	 *
-	 * @param correct The correct team member
-	 * @param count The number of options to generate
-	 */
-	function getRandomPhotoOptions(correct: TeamMember, count: number): TeamMember[] {
-		const others = allMembers.value.filter((m) => m.id !== correct.id)
-		const shuffled = others.sort(() => Math.random() - 0.5).slice(0, count - 1)
-		return [...shuffled, correct].sort(() => Math.random() - 0.5)
-	}
-
-	/**
-	 *
-	 * @param person The team member to build a challenge for
-	 */
-	function buildChallenge(person: TeamMember): Challenge {
-		const pp = getPersonProgress(progress.value, person.id)
-		let type: ChallengeType = STAGE_TO_TYPE[Math.min(pp.stage, 4)]
-
-		// At recognize stage, randomly alternate between name-pick and face-pick
-		if (type === 'recognize' && allMembers.value.length >= 4) {
-			type = Math.random() < 0.5 ? 'recognize' : 'pick-face'
-		}
-
-		const challenge: Challenge = {
-			seq: ++challengeSeq,
-			type,
-			person,
-			correctAnswer: person.name,
-		}
-
-		if (type === 'recognize') {
-			challenge.options = getRandomOptions(person, 4)
-		} else if (type === 'pick-face') {
-			challenge.photoOptions = getRandomPhotoOptions(person, 4)
-		} else if (type === 'recall') {
-			challenge.maskedName = generateMaskedName(person.name)
-		}
-
-		return challenge
-	}
-
-	/**
-	 *
+	 * Advance to the next challenge, or signal game-over when no person is available.
 	 */
 	function nextChallenge() {
 		if (gameOver.value) {
 			return
 		}
 
-		const person = pickNextPerson()
+		const person = pickNextPerson(progress.value, allMembers.value, lastPersonId.value)
 		if (!person) {
 			gameOver.value = true
 			return
 		}
 
+		lastPersonId.value = person.id
 		showingResult.value = false
-		currentChallenge.value = buildChallenge(person)
+		currentChallenge.value = buildChallenge(person, progress.value, allMembers.value)
 	}
 
 	/**
+	 * Submit an answer for the current challenge.
+	 * Returns true when the answer is correct (or it's a "meet" card).
 	 *
 	 * @param answer The player's answer string
 	 */
@@ -339,78 +173,48 @@ export function useGameEngine() {
 		}
 
 		const challenge = currentChallenge.value
-		const pp = getPersonProgress(progress.value, challenge.person.id)
-		const now = Date.now()
 		const isMeet = challenge.type === 'meet'
 
 		// Strip diacritics so answers are accent-agnostic (e.g. "Jose" matches "José")
 		const normalizedAnswer = normalizeText(answer)
 		const normalizedCorrect = normalizeText(challenge.correctAnswer)
 		const isCorrect = isMeet || normalizedAnswer === normalizedCorrect
-		// A "close" answer has Levenshtein distance ≤ 2 (catches 1-2 char typos)
-		const isClose = !isCorrect && !isMeet && levenshtein(normalizedAnswer, normalizedCorrect) <= CLOSE_ANSWER_THRESHOLD
-
-		pp.lastSeen = now
-		sessionStats.value.answered++
-		progress.value.totalAnswered++
+		// A "close" answer has Levenshtein distance ≤ threshold (catches typos)
+		const isClose = !isCorrect && !isMeet
+			&& normalizedAnswer.length > 0
+			&& levenshtein(normalizedAnswer, normalizedCorrect) <= CLOSE_ANSWER_THRESHOLD
 
 		if (isCorrect) {
-			pp.totalCorrect++
-			pp.correctStreak++
-			pp.stage = Math.min(pp.stage + 1, 4)
-			pp.nextReview = now + INTERVALS[pp.stage]
-
-			progress.value.totalCorrect++
+			const { xp } = recordCorrect(
+				progress.value,
+				challenge.person.id,
+				challenge.type,
+				sessionStats.value.streak,
+			)
+			sessionStats.value.answered++
 			sessionStats.value.correct++
 			sessionStats.value.streak++
-
-			const xp = XP_PER_STAGE[challenge.type]
-			progress.value.xp += xp
 			sessionStats.value.xpEarned += xp
 
 			if (sessionStats.value.streak > sessionStats.value.bestStreak) {
 				sessionStats.value.bestStreak = sessionStats.value.streak
 			}
-			if (sessionStats.value.streak > progress.value.bestStreak) {
-				progress.value.bestStreak = sessionStats.value.streak
-			}
-			progress.value.currentStreak = sessionStats.value.streak
 
-			const xpForLevel = progress.value.level * 100
-			if (progress.value.xp >= xpForLevel) {
-				progress.value.level++
-			}
-
-			if (pp.stage === 4) {
+			const pp = progress.value.people[challenge.person.id]
+			if (pp && pp.stage === 4) {
 				sessionStats.value.newlyMastered.push(challenge.person.name)
 			}
 		} else if (isClose) {
-			// Close answer: give ¼ XP, don't penalize stage or life (honest near-miss)
-			pp.totalWrong++
-			pp.correctStreak = 0
-			pp.nextReview = now + 30_000 // retry soon
-
+			const { xp } = recordClose(progress.value, challenge.person.id, challenge.type)
+			sessionStats.value.answered++
 			sessionStats.value.wrong++
 			sessionStats.value.streak = 0
-			progress.value.currentStreak = 0
-
-			const partialXp = Math.ceil(XP_PER_STAGE[challenge.type] / CLOSE_ANSWER_XP_DIVISOR)
-			progress.value.xp += partialXp
-			sessionStats.value.xpEarned += partialXp
-
-			const xpForLevelClose = progress.value.level * 100
-			if (progress.value.xp >= xpForLevelClose) {
-				progress.value.level++
-			}
+			sessionStats.value.xpEarned += xp
 		} else {
-			pp.totalWrong++
-			pp.correctStreak = 0
-			pp.stage = Math.max(pp.stage - 1, 1)
-			pp.nextReview = now + 5000
-
+			recordWrong(progress.value, challenge.person.id)
+			sessionStats.value.answered++
 			sessionStats.value.wrong++
 			sessionStats.value.streak = 0
-			progress.value.currentStreak = 0
 
 			lives.value--
 			if (lives.value <= 0) {
@@ -427,26 +231,6 @@ export function useGameEngine() {
 	}
 
 	/**
-	 *
-	 */
-	function useHint(): string | null {
-		if (!currentChallenge.value) {
-			return null
-		}
-		const cost = 10
-		if (progress.value.xp < cost) {
-			return null
-		}
-
-		progress.value.xp -= cost
-		sessionStats.value.xpEarned -= cost
-		saveProgress(progress.value)
-
-		const person = currentChallenge.value.person
-		return `${person.title} — ${person.department}`
-	}
-
-	/**
 	 * Mark the current challenge as skipped (wrong but no life lost).
 	 * Used by the "I don't know" button.
 	 */
@@ -455,25 +239,33 @@ export function useGameEngine() {
 			return
 		}
 		const challenge = currentChallenge.value
-		const pp = getPersonProgress(progress.value, challenge.person.id)
-		const now = Date.now()
 
-		pp.lastSeen = now
-		pp.totalWrong++
-		pp.correctStreak = 0
-		pp.stage = Math.max(pp.stage - 1, 1)
-		pp.nextReview = now + 5000
-
+		recordSkip(progress.value, challenge.person.id)
 		sessionStats.value.answered++
 		sessionStats.value.wrong++
 		sessionStats.value.streak = 0
-		progress.value.totalAnswered++
-		progress.value.currentStreak = 0
 
 		lastAnswerCorrect.value = false
 		lastAnswerClose.value = false
 		showingResult.value = true
 		saveProgress(progress.value)
+	}
+
+	/**
+	 * Use the first hint: costs HINT_COST_FIRST XP, returns "title — department" or null
+	 * when the player can't afford it.
+	 */
+	function useHint(): string | null {
+		if (!currentChallenge.value || progress.value.xp < HINT_COST_FIRST) {
+			return null
+		}
+
+		applyXp(progress.value, -HINT_COST_FIRST)
+		sessionStats.value.xpEarned -= HINT_COST_FIRST
+		saveProgress(progress.value)
+
+		const person = currentChallenge.value.person
+		return `${person.title} — ${person.department}`
 	}
 
 	/**
@@ -503,9 +295,9 @@ export function useGameEngine() {
 			return baseMask
 		}
 
-		// Reveal ~⅓ of remaining hidden letters (minimum 2)
+		// Reveal ~⅓ of remaining hidden letters (minimum REVEAL_MIN_COUNT)
 		const revealCount = Math.max(REVEAL_MIN_COUNT, Math.ceil(hiddenIndices.length * REVEAL_FRACTION))
-		const toReveal = hiddenIndices.sort(() => Math.random() - 0.5).slice(0, revealCount)
+		const toReveal = shuffle([...hiddenIndices]).slice(0, revealCount)
 		const chars = Array.from(baseMask)
 		for (const idx of toReveal) {
 			chars[idx] = name[idx]
@@ -515,7 +307,7 @@ export function useGameEngine() {
 
 	/**
 	 * Second-level hint for recognize/pick-face: returns the name of a wrong
-	 * option that should be eliminated, or null when not applicable.
+	 * option to eliminate, or null when not applicable.
 	 */
 	function eliminateWrongOption(): string | null {
 		if (!currentChallenge.value) {
@@ -543,21 +335,17 @@ export function useGameEngine() {
 	}
 
 	/**
-	 * Perform the second hint (costs 15 XP).
+	 * Perform the second hint (costs HINT_COST_SECOND XP).
 	 * Returns what was revealed so App.vue can store and display it.
 	 */
 	function useSecondHint(): { revealedMask: string | null, eliminatedOption: string | null } {
 		const empty = { revealedMask: null, eliminatedOption: null }
-		if (!currentChallenge.value) {
-			return empty
-		}
-		const cost = 15
-		if (progress.value.xp < cost) {
+		if (!currentChallenge.value || progress.value.xp < HINT_COST_SECOND) {
 			return empty
 		}
 
-		progress.value.xp -= cost
-		sessionStats.value.xpEarned -= cost
+		applyXp(progress.value, -HINT_COST_SECOND)
+		sessionStats.value.xpEarned -= HINT_COST_SECOND
 		saveProgress(progress.value)
 
 		const type = currentChallenge.value.type
@@ -589,5 +377,6 @@ export function useGameEngine() {
 		skipAnswer,
 		useHint,
 		useSecondHint,
+		retryFetch: fetchTeamMembers,
 	}
 }

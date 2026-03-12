@@ -7,10 +7,13 @@
 		<StartScreen
 			v-if="screen === 'start'"
 			:allMembers="allMembers"
+			:loading="loading"
+			:loadError="loadError"
 			:progress="progress"
 			@start="startGame"
 			@reset="handleReset"
-			@leaderboard="screen = 'leaderboard'" />
+			@leaderboard="screen = 'leaderboard'"
+			@retry="retryFetch" />
 		<GameScreen
 			v-else-if="screen === 'game'"
 			:currentChallenge="currentChallenge"
@@ -77,6 +80,8 @@ const {
 	showingResult,
 	lastAnswerCorrect,
 	lastAnswerClose,
+	loading,
+	loadError,
 	allMembers,
 	masteredCount,
 	totalCount,
@@ -87,6 +92,7 @@ const {
 	skipAnswer,
 	useHint,
 	useSecondHint,
+	retryFetch,
 } = useGameEngine()
 
 /**
@@ -208,13 +214,14 @@ watch(lives, (val) => {
 
 /* ── Root container ── */
 #content {
-	overflow: hidden;
+	overflow-y: auto;
 }
 
 #whos-who-app {
+	min-height: 100%;
 	height: 100%;
 	width: 100%;
-	overflow: hidden;
+	overflow-y: auto;
 	font-family: var(--font-face, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
 	background-color: var(--color-main-background);
 	color: var(--color-main-text);

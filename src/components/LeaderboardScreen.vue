@@ -49,7 +49,12 @@
 					'rank-bronze': i === 2,
 				}">
 				<span class="lb-rank">{{ rankLabel(i) }}</span>
-				<span class="lb-avatar">{{ avatarLetter(entry) }}</span>
+				<NcAvatar
+					class="lb-avatar"
+					:user="entry.user_id"
+					:displayName="entry.display_name || entry.user_id"
+					:disableTooltip="true"
+					:hideStatus="true" />
 				<span class="lb-name">
 					{{ entry.display_name || entry.user_id }}
 					<span v-if="entry.user_id === currentUser" class="you-badge">You</span>
@@ -70,6 +75,7 @@
 <script setup lang="ts">
 import type { LeaderboardEntry } from '../composables/useLeaderboard.ts'
 
+import { NcAvatar } from '@nextcloud/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useLeaderboard } from '../composables/useLeaderboard.ts'
 import { rankLabel } from '../utils/strings.ts'
@@ -89,13 +95,7 @@ const myRank = computed(() => {
 
 /**
  *
- * @param entry The leaderboard entry
  */
-function avatarLetter(entry: LeaderboardEntry): string {
-	const name = entry.display_name || entry.user_id
-	return name.charAt(0).toUpperCase()
-}
-
 onMounted(fetchScores)
 </script>
 
@@ -241,16 +241,6 @@ onMounted(fetchScores)
 }
 
 .lb-avatar {
-	width: 36px;
-	height: 36px;
-	border-radius: 50%;
-	background: var(--color-primary-element);
-	color: var(--color-primary-element-text);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1rem;
-	font-weight: 700;
 	flex-shrink: 0;
 }
 

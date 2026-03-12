@@ -399,10 +399,9 @@ useHotKey('h', () => {
 /* ── Outer shell ─────────────────────────────────────────────────*/
 .game-screen {
 	width: 100%;
-	height: 100%;
+	min-height: 100%;
 	display: flex;
 	flex-direction: column;
-	overflow: hidden;
 	background-color: var(--color-main-background);
 	color: var(--color-main-text);
 }
@@ -412,6 +411,10 @@ useHotKey('h', () => {
 	flex-shrink: 0;
 	padding: 10px 20px 12px;
 	border-bottom: 1px solid var(--color-border);
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	background-color: var(--color-main-background);
 }
 
 /* ── Two-column body ───────────────────────────────────────────────*/
@@ -657,7 +660,8 @@ kbd {
 @media (max-width: 680px) {
 	.game-body {
 		flex-direction: column;
-		overflow-y: auto;
+		overflow-y: visible; /* parent (#whos-who-app) scrolls */
+		flex: none;
 	}
 
 	.card-column {
@@ -665,14 +669,33 @@ kbd {
 		border-inline-end: none;
 		border-bottom: 1px solid var(--color-border);
 		padding: 14px 16px 12px;
+		/* Cap photo height so the interaction area is always visible */
+		max-height: 220px;
 	}
 
 	.challenge-column {
-		padding: 14px 16px 12px;
+		padding: 14px 16px 16px;
+		overflow: visible;
+		flex: none;
+	}
+
+	.input-area.pick-face {
+		flex: none;
+		overflow: visible;
+		min-height: auto;
 	}
 
 	.flex-spacer {
 		display: none;
+	}
+
+	.action-area {
+		position: sticky;
+		bottom: 0;
+		background: var(--color-main-background);
+		padding-bottom: env(safe-area-inset-bottom, 8px);
+		padding-top: 8px;
+		z-index: 5;
 	}
 }
 
