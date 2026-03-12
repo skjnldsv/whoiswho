@@ -6,7 +6,7 @@
 import type { TeamMember } from '../types.ts'
 import type { GameProgress } from './useStorage.ts'
 
-import { OPTION_COUNT, PLACEHOLDER_PHOTO } from '../constants.ts'
+import { ANSWER_TIME_LIMITS, OPTION_COUNT, PLACEHOLDER_PHOTO } from '../constants.ts'
 import { shuffle } from '../utils/strings.ts'
 import { getPersonProgress } from './useStorage.ts'
 
@@ -21,6 +21,7 @@ export interface Challenge {
 	photoOptions?: TeamMember[] // for pick-face: pick photo from grid
 	maskedName?: string // for recall stage
 	correctAnswer: string
+	timeLimit: number // milliseconds (0 = no timer)
 }
 
 // Maps stage index to challenge type
@@ -92,6 +93,7 @@ export function buildChallenge(person: TeamMember, progress: GameProgress, allMe
 		type,
 		person,
 		correctAnswer: person.name,
+		timeLimit: ANSWER_TIME_LIMITS[type],
 	}
 
 	if (type === 'recognize') {
