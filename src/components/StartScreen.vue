@@ -206,13 +206,12 @@ onMounted(fetchScores)
 <style scoped>
 .start-screen {
 	width: 100%;
-	min-height: 100%;
+	flex: 1 0 auto;
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
-	padding: 20px 24px;
+	padding: 24px;
 	box-sizing: border-box;
-	overflow-y: auto;
 }
 
 /* ── Top section ── */
@@ -343,8 +342,6 @@ h1 {
 
 /* ── Main 2-column section ── */
 .start-main {
-	flex: 1;
-	min-height: 0;
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 16px;
@@ -355,7 +352,6 @@ h1 {
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-container);
 	padding: 18px;
-	overflow: scroll;
 	display: flex;
 	flex-direction: column;
 }
@@ -497,12 +493,6 @@ h1 {
 	color: var(--color-primary-element-text);
 }
 
-.lb-body {
-	flex: 1;
-	min-height: 0;
-	overflow: hidden;
-}
-
 .lb-status {
 	text-align: center;
 	padding: 16px 8px;
@@ -562,16 +552,10 @@ h1 {
 @media (max-width: 600px) {
 	.start-screen {
 		padding: 16px;
-		overflow-y: auto;
 	}
 
 	.start-main {
 		grid-template-columns: 1fr;
-		flex: none;
-	}
-
-	.panel {
-		min-height: 0;
 	}
 }
 </style>

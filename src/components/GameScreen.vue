@@ -528,7 +528,7 @@ useHotKey('h', () => {
 /* ── Outer shell ─────────────────────────────────────────────────*/
 .game-screen {
 	width: 100%;
-	min-height: 100%;
+	flex: 1 0 auto;
 	display: flex;
 	flex-direction: column;
 	background-color: var(--color-main-background);
@@ -548,10 +548,9 @@ useHotKey('h', () => {
 
 /* ── Two-column body ───────────────────────────────────────────────*/
 .game-body {
+	display: flex;
 	flex: 1;
 	min-height: 0;
-	display: flex;
-	overflow: hidden;
 	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -577,7 +576,6 @@ useHotKey('h', () => {
 	justify-content: center;
 	padding: 20px 16px;
 	border-inline-end: 1px solid var(--color-border);
-	overflow: hidden;
 }
 
 .card-wrapper {
@@ -592,11 +590,11 @@ useHotKey('h', () => {
 .challenge-column {
 	flex: 1;
 	min-width: 0;
+	min-height: 0;
 	max-width: 500px;
 	display: flex;
 	flex-direction: column;
 	padding: 20px 24px 16px;
-	overflow: hidden;
 	gap: 12px;
 }
 
@@ -612,7 +610,6 @@ useHotKey('h', () => {
 .input-area.pick-face {
 	flex: 1000 1 0%;
 	min-height: 0;
-	overflow: hidden;
 }
 
 .flex-spacer {
@@ -856,8 +853,6 @@ kbd {
 @media (max-width: 680px) {
 	.game-body {
 		flex-direction: column;
-		overflow-y: visible; /* parent (#whos-who-app) scrolls */
-		flex: none;
 	}
 
 	.card-column {
@@ -865,19 +860,15 @@ kbd {
 		border-inline-end: none;
 		border-bottom: 1px solid var(--color-border);
 		padding: 14px 16px 12px;
-		/* Cap photo height so the interaction area is always visible */
-		max-height: 220px;
 	}
 
 	.challenge-column {
 		padding: 14px 16px 16px;
-		overflow: visible;
 		flex: none;
 	}
 
 	.input-area.pick-face {
 		flex: none;
-		overflow: visible;
 		min-height: auto;
 	}
 
@@ -896,14 +887,11 @@ kbd {
 
 	/* Meet (discover) phase: let the card + "Got it" button size naturally */
 	.game-body--meet-pending {
-		flex: 1;
-		min-height: 0;
 		align-items: center;
 	}
 
 	.game-body--meet-pending .card-column {
 		flex: 0 0 auto;
-		max-height: none;
 		border-bottom: none;
 	}
 }

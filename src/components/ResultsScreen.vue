@@ -75,14 +75,14 @@
 				<button class="btn-primary btn-play-again" @click="$emit('playAgain')">
 					🎮 Play Again
 				</button>
+				<button class="btn-tertiary" @click="$emit('goHome')">
+					← Back to Menu
+				</button>
 				<button class="btn-secondary" @click="$emit('leaderboard')">
 					🏆 Leaderboard
 				</button>
 				<button class="btn-secondary" @click="$emit('achievements')">
 					🎖️ Achievements
-				</button>
-				<button class="btn-tertiary" @click="$emit('goHome')">
-					← Back to Menu
 				</button>
 			</div>
 		</div>
@@ -122,10 +122,10 @@ const accuracy = computed(() => {
 .results-screen {
 	max-width: 560px;
 	margin: 0 auto;
-	padding: 32px 20px;
+	padding: 32px 20px 44px;
 	width: 100%;
 	box-sizing: border-box;
-	overflow-y: auto;
+	flex: 1 0 auto;
 }
 
 .results-card {
@@ -224,9 +224,10 @@ const accuracy = computed(() => {
 
 .result-actions {
 	display: flex;
-	flex-direction: column;
 	gap: 10px;
 	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
 }
 
 .btn-primary {
