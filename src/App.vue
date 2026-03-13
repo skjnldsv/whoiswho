@@ -321,15 +321,15 @@ function handleReset() {
 }
 
 /* ── Root container ── */
+/* Fill #content exactly and be the sole scroll container for all screens */
 #whos-who-app {
-	min-height: 100%;
+	height: 100%;
 	width: 100%;
 	font-family: var(--font-face, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
 	background-color: var(--color-main-background);
 	color: var(--color-main-text);
-	display: flex;
-	flex-direction: column;
 	position: relative;
+	overflow-y: auto;
 }
 
 /* ── Achievement toast ── */

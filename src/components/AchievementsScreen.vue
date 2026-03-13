@@ -92,8 +92,8 @@ const unlockedCount = computed(() => props.unlockedIds.size)
 <style scoped>
 .achievements-screen {
 	width: 100%;
-	min-height: 100%;
-	padding: 20px 24px;
+	flex: 1 0 auto;
+	padding: 20px 24px 44px;
 	box-sizing: border-box;
 }
 

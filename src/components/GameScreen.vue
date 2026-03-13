@@ -528,7 +528,7 @@ useHotKey('h', () => {
 /* ── Outer shell ─────────────────────────────────────────────────*/
 .game-screen {
 	width: 100%;
-	min-height: 100%;
+	flex: 1 0 auto;
 	display: flex;
 	flex-direction: column;
 	background-color: var(--color-main-background);
@@ -549,6 +549,8 @@ useHotKey('h', () => {
 /* ── Two-column body ───────────────────────────────────────────────*/
 .game-body {
 	display: flex;
+	flex: 1;
+	min-height: 0;
 	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -588,6 +590,7 @@ useHotKey('h', () => {
 .challenge-column {
 	flex: 1;
 	min-width: 0;
+	min-height: 0;
 	max-width: 500px;
 	display: flex;
 	flex-direction: column;

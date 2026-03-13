@@ -206,11 +206,11 @@ onMounted(fetchScores)
 <style scoped>
 .start-screen {
 	width: 100%;
-	min-height: 100%;
+	flex: 1 0 auto;
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
-	padding: 20px 24px;
+	padding: 24px;
 	box-sizing: border-box;
 }
 
@@ -491,9 +491,6 @@ h1 {
 .lb-tab.active {
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text);
-}
-
-.lb-body {
 }
 
 .lb-status {
