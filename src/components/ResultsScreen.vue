@@ -55,12 +55,31 @@
 				</div>
 			</div>
 
+			<div v-if="newlyUnlockedAchievements.length > 0" class="achievements-section">
+				<h3>🎖️ Achievements Unlocked</h3>
+				<div class="achievements-list">
+					<div
+						v-for="achievement in newlyUnlockedAchievements"
+						:key="achievement.id"
+						class="achievement-row">
+						<span class="achievement-row-emoji">{{ achievement.emoji }}</span>
+						<div class="achievement-row-info">
+							<span class="achievement-row-name">{{ achievement.name }}</span>
+							<span class="achievement-row-desc">{{ achievement.description }}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
 			<div class="result-actions">
 				<button class="btn-primary btn-play-again" @click="$emit('playAgain')">
 					🎮 Play Again
 				</button>
 				<button class="btn-secondary" @click="$emit('leaderboard')">
 					🏆 Leaderboard
+				</button>
+				<button class="btn-secondary" @click="$emit('achievements')">
+					🎖️ Achievements
 				</button>
 				<button class="btn-tertiary" @click="$emit('goHome')">
 					← Back to Menu
@@ -71,6 +90,7 @@
 </template>
 
 <script setup lang="ts">
+import type { Achievement } from '../composables/useAchievements.ts'
 import type { SessionStats } from '../composables/useGameEngine.ts'
 
 import { computed } from 'vue'
@@ -80,12 +100,14 @@ const props = defineProps<{
 	level: number
 	mastered: number
 	total: number
+	newlyUnlockedAchievements: Achievement[]
 }>()
 
 defineEmits<{
 	playAgain: []
 	goHome: []
 	leaderboard: []
+	achievements: []
 }>()
 
 const accuracy = computed(() => {
@@ -263,5 +285,55 @@ const accuracy = computed(() => {
 
 .btn-play-again {
 	min-width: 180px;
+}
+
+.achievements-section {
+	margin-bottom: 24px;
+	text-align: start;
+}
+
+.achievements-section h3 {
+	font-size: 1rem;
+	color: var(--color-main-text);
+	margin: 0 0 12px 0;
+	text-align: center;
+}
+
+.achievements-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.achievement-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 14px;
+	border-radius: var(--border-radius-element);
+	background: var(--color-primary-element-light);
+	border: 1px solid var(--color-primary-element);
+}
+
+.achievement-row-emoji {
+	font-size: 1.4rem;
+	flex-shrink: 0;
+}
+
+.achievement-row-info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.achievement-row-name {
+	font-size: 0.88rem;
+	font-weight: 700;
+	color: var(--color-main-text);
+}
+
+.achievement-row-desc {
+	font-size: 0.76rem;
+	color: var(--color-text-maxcontrast);
 }
 </style>
