@@ -73,7 +73,6 @@ export const ACHIEVEMENTS: Achievement[] = [
 	{ id: 'near-perfect', emoji: '💯', name: 'Near Perfect', description: 'Finish a session with 95%+ accuracy and 100+ answers', category: 'accuracy' },
 
 	// ── Fun & Special ────────────────────────────────────────────────────────
-	{ id: 'comeback-champion', emoji: '💪', name: 'Comeback Champion', description: 'Complete a session with only 1 life remaining', category: 'special' },
 	{ id: 'night-owl', emoji: '🦉', name: 'Night Owl', description: 'Play between midnight and 5am', category: 'special' },
 	{ id: 'early-bird', emoji: '🐦', name: 'Early Bird', description: 'Play between 5am and 7am', category: 'special' },
 	{ id: 'weekend-warrior', emoji: '🎮', name: 'Weekend Warrior', description: 'Play on both Saturday and Sunday', category: 'special' },
@@ -239,7 +238,6 @@ export function useAchievements() {
 			'near-perfect': isSessionEnd && sessionWon && sessionStats.answered >= 100 && accuracy >= 0.95,
 
 			// Fun & Special
-			'comeback-champion': isSessionEnd && sessionWon && sessionStats.lowestLives === 1,
 			'night-owl': nowHour >= 0 && nowHour < 5,
 			'early-bird': nowHour >= 5 && nowHour < 7,
 			'weekend-warrior': (nowDay === 0 || nowDay === 6) && playedSaturday && playedSunday,
