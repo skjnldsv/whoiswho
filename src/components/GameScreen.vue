@@ -71,10 +71,12 @@
 				<div
 					v-if="currentChallenge.timeLimit > 0 && !showingResult"
 					class="timer-bar">
-					<div
-						class="timer-fill"
-						:style="{ width: (timeRemainingMs / currentChallenge.timeLimit * 100) + '%' }"
-						:class="{ 'timer-fill--warning': timeRemainingMs < 5000 }" />
+					<div class="timer-track">
+						<div
+							class="timer-fill"
+							:style="{ width: (timeRemainingMs / currentChallenge.timeLimit * 100) + '%' }"
+							:class="{ 'timer-fill--warning': timeRemainingMs < 5000 }" />
+					</div>
 					<span class="timer-text">{{ Math.ceil(timeRemainingMs / 1000) }}s</span>
 				</div>
 
@@ -340,7 +342,7 @@ watch(() => props.currentChallenge, (challenge) => {
 	pickFacePhotoFailed.value = false
 	clearAutoSkipTimers()
 	startTimer(challenge?.timeLimit ?? 0)
-})
+}, { immediate: true })
 
 // Watch for streak milestones
 watch(() => props.sessionStats.streak, (streak) => {
@@ -625,9 +627,16 @@ useHotKey('h', () => {
 	flex-shrink: 0;
 }
 
-.timer-fill {
+.timer-track {
 	flex: 1;
 	height: 6px;
+	background: var(--color-border, rgba(0, 0, 0, 0.1));
+	border-radius: 3px;
+	overflow: hidden;
+}
+
+.timer-fill {
+	height: 100%;
 	background: var(--color-primary-element);
 	border-radius: 3px;
 	transition: width 0.1s linear, background-color 0.3s ease;
