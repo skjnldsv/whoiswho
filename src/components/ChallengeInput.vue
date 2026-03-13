@@ -67,6 +67,9 @@
 		<p class="prompt">
 			Complete the name:
 		</p>
+		<p class="sub-prompt">
+			{{ t('whoiswho', 'First letter of each word is shown — fill in the blanks.') }}
+		</p>
 		<p class="masked-name">
 			{{ showingResult ? challenge.correctAnswer : (revealedMask || challenge.maskedName) }}
 		</p>
