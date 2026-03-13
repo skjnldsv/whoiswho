@@ -108,6 +108,9 @@
 					</button>
 				</div>
 				<div class="lb-tabs">
+					<button class="lb-tab" :class="[{ active: lbTab === 'streak' }]" @click="lbTab = 'streak'">
+						🔥 Streak
+					</button>
 					<button class="lb-tab" :class="[{ active: lbTab === 'weekly' }]" @click="lbTab = 'weekly'">
 						This Week
 					</button>
@@ -133,7 +136,11 @@
 							:class="{ 'is-me': entry.user_id === currentUser }">
 							<span class="lb-rank">{{ rankLabel(i) }}</span>
 							<span class="lb-name">{{ entry.display_name || entry.user_id }}</span>
-							<span class="lb-score">{{ lbTab === 'weekly' ? entry.week_score : entry.total_score }} XP</span>
+							<span class="lb-score">
+								<template v-if="lbTab === 'streak'">{{ entry.best_streak }} 🔥</template>
+								<template v-else-if="lbTab === 'weekly'">{{ entry.week_score }} XP</template>
+								<template v-else>{{ entry.total_score }} XP</template>
+							</span>
 						</div>
 					</div>
 				</div>
@@ -173,9 +180,17 @@ const level = computed(() => props.progress.level)
 const xp = computed(() => props.progress.xp)
 
 // Inline leaderboard
-const { allTime, weekly, loading: lbLoading, error: lbError, currentUser, fetchScores } = useLeaderboard()
-const lbTab = ref<'weekly' | 'alltime'>('weekly')
-const currentList = computed(() => lbTab.value === 'weekly' ? weekly.value : allTime.value)
+const { allTime, weekly, streak, loading: lbLoading, error: lbError, currentUser, fetchScores } = useLeaderboard()
+const lbTab = ref<'streak' | 'weekly' | 'alltime'>('streak')
+const currentList = computed(() => {
+	if (lbTab.value === 'streak') {
+		return streak.value
+	}
+	if (lbTab.value === 'weekly') {
+		return weekly.value
+	}
+	return allTime.value
+})
 
 onMounted(fetchScores)
 </script>

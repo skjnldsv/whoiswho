@@ -16,6 +16,9 @@
 
 		<!-- Tabs -->
 		<div class="lb-tabs">
+			<button class="tab-btn" :class="[{ active: tab === 'streak' }]" @click="tab = 'streak'">
+				🔥 Best Streak
+			</button>
 			<button class="tab-btn" :class="[{ active: tab === 'weekly' }]" @click="tab = 'weekly'">
 				📅 This Week
 			</button>
@@ -60,7 +63,15 @@
 					<span v-if="entry.user_id === currentUser" class="you-badge">You</span>
 				</span>
 				<span class="lb-score">
-					{{ tab === 'weekly' ? entry.week_score : entry.total_score }} XP
+					<template v-if="tab === 'streak'">
+						{{ entry.best_streak }} 🔥
+					</template>
+					<template v-else-if="tab === 'weekly'">
+						{{ entry.week_score }} XP
+					</template>
+					<template v-else>
+						{{ entry.total_score }} XP
+					</template>
 				</span>
 			</div>
 
@@ -82,11 +93,19 @@ import { rankLabel } from '../utils/strings.ts'
 
 const emit = defineEmits<{ close: [] }>()
 
-const { allTime, weekly, loading, error, currentUser, fetchScores } = useLeaderboard()
+const { allTime, weekly, streak, loading, error, currentUser, fetchScores } = useLeaderboard()
 
-const tab = ref<'weekly' | 'alltime'>('weekly')
+const tab = ref<'streak' | 'weekly' | 'alltime'>('streak')
 
-const currentList = computed<LeaderboardEntry[]>(() => tab.value === 'weekly' ? weekly.value : allTime.value)
+const currentList = computed<LeaderboardEntry[]>(() => {
+	if (tab.value === 'streak') {
+		return streak.value
+	}
+	if (tab.value === 'weekly') {
+		return weekly.value
+	}
+	return allTime.value
+})
 
 const myRank = computed(() => {
 	const idx = currentList.value.findIndex((e) => e.user_id === currentUser)
