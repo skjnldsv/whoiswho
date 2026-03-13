@@ -68,6 +68,7 @@ interface ChallengeResponse {
 interface AnswerResponse {
 	correct: boolean
 	close: boolean
+	timedOut: boolean
 	correctAnswer: string
 	xp: number
 	leveledUp: boolean
@@ -299,9 +300,14 @@ export function useGameEngine() {
 			lastResponseTime.value = result.responseTime
 			lastStreakBonus.value = result.streakBonus
 
-			// Set the correctAnswer on the challenge for result display
+			// The backend reveals the correct answer and person name only
+			// AFTER validation — populate them for the result display.
 			if (currentChallenge.value) {
 				currentChallenge.value.correctAnswer = result.correctAnswer
+				// Restore person.name (stripped by the server to prevent cheating)
+				if (!currentChallenge.value.person.name) {
+					currentChallenge.value.person.name = result.correctAnswer
+				}
 			}
 
 			updateProgressFromBackend(result.progress)
@@ -335,9 +341,14 @@ export function useGameEngine() {
 				return
 			}
 
-			// Set the correctAnswer on the challenge for result display
+			// The backend reveals the correct answer and person name only
+			// AFTER validation — populate them for the result display.
 			if (currentChallenge.value) {
 				currentChallenge.value.correctAnswer = result.correctAnswer
+				// Restore person.name (stripped by the server to prevent cheating)
+				if (!currentChallenge.value.person.name) {
+					currentChallenge.value.person.name = result.correctAnswer
+				}
 			}
 
 			lastAnswerCorrect.value = false

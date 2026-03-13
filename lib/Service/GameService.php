@@ -57,6 +57,10 @@ class GameService {
 		'type' => 15,
 	];
 
+	// ── Server-side timer enforcement ──────────────────────────────────────
+	/** Grace period (seconds) added to the time limit to account for network latency. */
+	private const TIMER_GRACE_PERIOD = 3;
+
 	// ── Streak bonus ────────────────────────────────────────────────────────
 	private const STREAK_BONUS_INTERVAL = 5;
 	private const STREAK_BONUS_XP = 5;
@@ -196,6 +200,18 @@ class GameService {
 		$clientChallenge = $challenge;
 		unset($clientChallenge['correctAnswer']);
 
+		// Convert time limit from seconds to milliseconds for the frontend timer
+		$clientChallenge['timeLimit'] = ($clientChallenge['timeLimit'] ?? 0) * 1000;
+
+		// Strip person.name for challenge types where the name IS the answer.
+		// This prevents cheaters from reading the answer directly from the
+		// challenge response. The name is revealed by the server after
+		// the answer is submitted (in the /game/answer response).
+		$type = $clientChallenge['type'] ?? '';
+		if ($type !== 'meet' && $type !== 'pick-face') {
+			$clientChallenge['person']['name'] = '';
+		}
+
 		return [
 			'challenge' => $clientChallenge,
 			'session' => $this->sessionToArray($session),
@@ -222,18 +238,24 @@ class GameService {
 		$personId = $session->getCurrentPersonId() ?? 0;
 		$isMeet = $challengeType === 'meet';
 
-		// Normalize and compare
-		$normalizedAnswer = $this->normalizeText($answer);
-		$normalizedCorrect = $this->normalizeText($correctAnswer);
-		$isCorrect = $isMeet || $normalizedAnswer === $normalizedCorrect;
-		$isClose = !$isCorrect && !$isMeet
-			&& strlen($normalizedAnswer) > 0
-			&& levenshtein($normalizedAnswer, $normalizedCorrect) <= self::CLOSE_ANSWER_THRESHOLD;
-
-		// Calculate response time
+		// Calculate response time (seconds)
 		$responseTime = $session->getChallengeStartedAt() > 0
 			? time() - $session->getChallengeStartedAt()
 			: 0;
+
+		// Server-side timer enforcement: reject answers that arrive after
+		// the time limit + grace period. This prevents cheaters from
+		// disabling the frontend timer and taking unlimited time.
+		$timeLimit = $session->getCurrentTimeLimit();
+		$timedOut = $timeLimit > 0 && $responseTime > ($timeLimit + self::TIMER_GRACE_PERIOD);
+
+		// Normalize and compare
+		$normalizedAnswer = $this->normalizeText($answer);
+		$normalizedCorrect = $this->normalizeText($correctAnswer);
+		$isCorrect = !$timedOut && ($isMeet || $normalizedAnswer === $normalizedCorrect);
+		$isClose = !$isCorrect && !$isMeet && !$timedOut
+			&& strlen($normalizedAnswer) > 0
+			&& levenshtein($normalizedAnswer, $normalizedCorrect) <= self::CLOSE_ANSWER_THRESHOLD;
 
 		$progress = $this->loadProgress($userId);
 		$xpAwarded = 0;
@@ -320,6 +342,7 @@ class GameService {
 		return [
 			'correct' => $isCorrect,
 			'close' => $isClose,
+			'timedOut' => $timedOut,
 			'correctAnswer' => $correctAnswer,
 			'xp' => $xpAwarded,
 			'leveledUp' => $leveledUp,

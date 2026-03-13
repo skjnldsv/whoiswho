@@ -49,6 +49,11 @@ const fallbackInitials = computed(() => {
 	if (!imgFailed.value) {
 		return null
 	}
+	// person.name may be empty for challenges where the name is the answer
+	// (stripped server-side to prevent cheating) — show a generic placeholder
+	if (!props.person.name) {
+		return '?'
+	}
 	return props.person.name
 		.split(' ')
 		.map((p) => p[0])
