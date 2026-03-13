@@ -206,6 +206,7 @@ export function useGameEngine() {
 		const person = pickNextPerson(progress.value, allMembers.value, lastPersonId.value)
 		if (!person) {
 			gameOver.value = true
+			endSession()
 			return
 		}
 
@@ -244,6 +245,8 @@ export function useGameEngine() {
 
 		// Update per-person response time stats (using running average over total answers)
 		const pp = getPersonProgress(progress.value, challenge.person.id)
+		// Capture stage before any mutation so we can detect new mastery below
+		const prevStage = pp.stage
 		pp.lastResponseTime = responseTime
 		const totalAnswers = pp.totalCorrect + pp.totalWrong + 1 // +1 for this answer (not yet recorded)
 		pp.avgResponseTime = pp.avgResponseTime === 0
@@ -304,7 +307,8 @@ export function useGameEngine() {
 				sessionStats.value.bestStreak = sessionStats.value.streak
 			}
 
-			if (pp && pp.stage === 4) {
+			// Only push to newlyMastered when the person just reached stage 4 for the first time
+			if (prevStage < 4 && pp.stage === 4) {
 				sessionStats.value.newlyMastered.push(challenge.person.name)
 			}
 		} else if (isClose) {
@@ -354,6 +358,7 @@ export function useGameEngine() {
 		sessionStats.value.answered++
 		sessionStats.value.wrong++
 		sessionStats.value.streak = 0
+		lastStreakBonus.value = 0
 
 		lastAnswerCorrect.value = false
 		lastAnswerClose.value = false
