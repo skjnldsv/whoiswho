@@ -49,13 +49,27 @@ class LeaderboardMapper extends QBMapper {
 		return $rows;
 	}
 
-	public function upsertScore(string $userId, string $displayName, int $scoreToAdd): void {
+	/** @return array<array-key, array<string, mixed>> */
+	public function getTopByStreak(int $limit = 20): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('user_id', 'display_name', 'best_streak', 'updated_at')
+			->from($this->tableName)
+			->where($qb->expr()->gt('best_streak', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
+			->orderBy('best_streak', 'DESC')
+			->setMaxResults($limit);
+		$result = $qb->executeQuery();
+		$rows = $result->fetchAllAssociative();
+		$result->closeCursor();
+		return $rows;
+	}
+
+	public function upsertScore(string $userId, string $displayName, int $scoreToAdd, int $bestStreak = 0): void {
 		$currentWeek = $this->getCurrentWeekLabel();
 		$now = time();
 
 		// Find existing entry
 		$qb = $this->db->getQueryBuilder();
-		$qb->select('id', 'total_score', 'week_label', 'week_score')
+		$qb->select('id', 'total_score', 'week_label', 'week_score', 'best_streak')
 			->from($this->tableName)
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
 		$result = $qb->executeQuery();
@@ -73,13 +87,14 @@ class LeaderboardMapper extends QBMapper {
 						'total_score' => $qb->createNamedParameter($scoreToAdd, IQueryBuilder::PARAM_INT),
 						'week_label' => $qb->createNamedParameter($currentWeek),
 						'week_score' => $qb->createNamedParameter($scoreToAdd, IQueryBuilder::PARAM_INT),
+						'best_streak' => $qb->createNamedParameter($bestStreak, IQueryBuilder::PARAM_INT),
 						'updated_at' => $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT),
 					])
 					->executeStatement();
 				return;
 			} catch (\Exception) {
 				// Another request already inserted a row; fall through to UPDATE below
-				$existing = ['total_score' => 0, 'week_label' => '', 'week_score' => 0];
+				$existing = ['total_score' => 0, 'week_label' => '', 'week_score' => 0, 'best_streak' => 0];
 			}
 		}
 
@@ -88,6 +103,8 @@ class LeaderboardMapper extends QBMapper {
 			? (int)$existing['week_score'] + $scoreToAdd
 			: $scoreToAdd;
 		$totalScore = (int)$existing['total_score'] + $scoreToAdd;
+		// Keep the all-time best streak
+		$newBestStreak = max((int)$existing['best_streak'], $bestStreak);
 
 		$qb = $this->db->getQueryBuilder();
 		$qb->update($this->tableName)
@@ -95,6 +112,7 @@ class LeaderboardMapper extends QBMapper {
 			->set('total_score', $qb->createNamedParameter($totalScore, IQueryBuilder::PARAM_INT))
 			->set('week_label', $qb->createNamedParameter($currentWeek))
 			->set('week_score', $qb->createNamedParameter($weekScore, IQueryBuilder::PARAM_INT))
+			->set('best_streak', $qb->createNamedParameter($newBestStreak, IQueryBuilder::PARAM_INT))
 			->set('updated_at', $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT))
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
 			->executeStatement();

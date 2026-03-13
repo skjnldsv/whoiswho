@@ -147,10 +147,10 @@ function handleNext() {
  *
  */
 function endGame() {
-	// Submit this session's XP to the leaderboard
+	// Submit this session's XP and best streak to the leaderboard
 	const xp = sessionStats.value.xpEarned
 	if (xp > 0) {
-		submitScore(xp)
+		submitScore(xp, sessionStats.value.bestStreak)
 	}
 	hintText.value = null
 	hintLevel.value = 0

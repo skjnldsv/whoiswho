@@ -33,12 +33,13 @@ class LeaderboardController extends OCSController {
 	public function getScores(): DataResponse {
 		$allTime = $this->mapper->getTopAllTime(20);
 		$weekly = $this->mapper->getTopWeekly(20);
-		return new DataResponse(['allTime' => $allTime, 'weekly' => $weekly]);
+		$streak = $this->mapper->getTopByStreak(20);
+		return new DataResponse(['allTime' => $allTime, 'weekly' => $weekly, 'streak' => $streak]);
 	}
 
 	#[NoAdminRequired]
 	#[ApiRoute(verb: 'POST', url: '/leaderboard/score')]
-	public function submitScore(int $score): DataResponse {
+	public function submitScore(int $score, int $bestStreak = 0): DataResponse {
 		$user = $this->userSession->getUser();
 		if ($user === null) {
 			return new DataResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
@@ -46,7 +47,10 @@ class LeaderboardController extends OCSController {
 		if ($score <= 0 || $score > 100_000) {
 			return new DataResponse(['error' => 'Score out of valid range'], Http::STATUS_BAD_REQUEST);
 		}
-		$this->mapper->upsertScore($user->getUID(), $user->getDisplayName(), $score);
+		if ($bestStreak < 0 || $bestStreak > 100_000) {
+			return new DataResponse(['error' => 'Streak out of valid range'], Http::STATUS_BAD_REQUEST);
+		}
+		$this->mapper->upsertScore($user->getUID(), $user->getDisplayName(), $score, $bestStreak);
 		return new DataResponse(['ok' => true]);
 	}
 }

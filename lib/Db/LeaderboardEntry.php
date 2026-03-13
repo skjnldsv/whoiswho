@@ -22,6 +22,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setWeekLabel(string $weekLabel)
  * @method int getWeekScore()
  * @method void setWeekScore(int $weekScore)
+ * @method int getBestStreak()
+ * @method void setBestStreak(int $bestStreak)
  * @method int getUpdatedAt()
  * @method void setUpdatedAt(int $updatedAt)
  */
@@ -31,11 +33,13 @@ class LeaderboardEntry extends Entity {
 	protected int $totalScore = 0;
 	protected string $weekLabel = '';
 	protected int $weekScore = 0;
+	protected int $bestStreak = 0;
 	protected int $updatedAt = 0;
 
 	public function __construct() {
 		$this->addType('totalScore', 'integer');
 		$this->addType('weekScore', 'integer');
+		$this->addType('bestStreak', 'integer');
 		$this->addType('updatedAt', 'integer');
 	}
 }

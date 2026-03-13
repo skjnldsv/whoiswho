@@ -14,12 +14,14 @@ export interface LeaderboardEntry {
 	total_score?: number
 	week_score?: number
 	week_label?: string
+	best_streak?: number
 	updated_at?: number
 }
 
 export interface LeaderboardData {
 	allTime: LeaderboardEntry[]
 	weekly: LeaderboardEntry[]
+	streak: LeaderboardEntry[]
 }
 
 // OCS response envelope
@@ -33,6 +35,7 @@ interface OcsResponse<T> {
 export function useLeaderboard() {
 	const allTime = ref<LeaderboardEntry[]>([])
 	const weekly = ref<LeaderboardEntry[]>([])
+	const streak = ref<LeaderboardEntry[]>([])
 	const loading = ref(false)
 	const error = ref(false)
 
@@ -49,6 +52,7 @@ export function useLeaderboard() {
 			const { data } = await axios.get<OcsResponse<LeaderboardData>>(generateOcsUrl('apps/whoiswho/leaderboard'))
 			allTime.value = data.ocs.data.allTime ?? []
 			weekly.value = data.ocs.data.weekly ?? []
+			streak.value = data.ocs.data.streak ?? []
 		} catch {
 			error.value = true
 		} finally {
@@ -59,13 +63,14 @@ export function useLeaderboard() {
 	/**
 	 *
 	 * @param xpEarned The XP score to submit
+	 * @param bestStreak The best streak achieved in the session
 	 */
-	async function submitScore(xpEarned: number): Promise<void> {
+	async function submitScore(xpEarned: number, bestStreak: number = 0): Promise<void> {
 		if (xpEarned <= 0) {
 			return
 		}
 		try {
-			await axios.post(generateOcsUrl('apps/whoiswho/leaderboard/score'), { score: xpEarned })
+			await axios.post(generateOcsUrl('apps/whoiswho/leaderboard/score'), { score: xpEarned, bestStreak })
 		} catch {
 			// Silently ignore — leaderboard submission is best-effort
 		}
@@ -74,6 +79,7 @@ export function useLeaderboard() {
 	return {
 		allTime,
 		weekly,
+		streak,
 		loading,
 		error,
 		currentUser,
