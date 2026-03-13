@@ -169,6 +169,10 @@ async function showAchievementToasts(achievements: Achievement[]): Promise<void>
  *
  */
 function startGame() {
+	// Submit any XP earned in a session that was interrupted by a crash or restart
+	if (progress.value.sessionActive && progress.value.sessionXpEarned > 0) {
+		submitScore(progress.value.sessionXpEarned, progress.value.sessionBestStreak)
+	}
 	hintText.value = null
 	hintLevel.value = 0
 	eliminatedOptions.value = []
