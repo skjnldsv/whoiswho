@@ -190,7 +190,7 @@ import ChallengeInput from './ChallengeInput.vue'
 import PersonCard from './PersonCard.vue'
 import ProgressBar from './ProgressBar.vue'
 import { CLOSE_ANSWER_XP_DIVISOR, XP_PER_STAGE } from '../composables/useGameEngine.ts'
-import { FAST_ANSWER_BONUS_XP, FAST_ANSWER_THRESHOLD, AUTO_SKIP_DELAY_MS, MEET_AUTO_ADVANCE_MS } from '../constants.ts'
+import { FAST_ANSWER_BONUS_XP, FAST_ANSWER_THRESHOLD, AUTO_SKIP_DELAY_MS } from '../constants.ts'
 
 const props = defineProps<{
 	currentChallenge: Challenge | null
@@ -386,7 +386,7 @@ watch(() => props.showingResult, (showing) => {
 		}
 
 		if (props.lastAnswerCorrect && props.currentChallenge.type === 'meet') {
-			// Auto-advance meet cards after a brief delay to allow the player to see the result
+			// Auto-advance meet cards immediately to skip the confusing in-between screen
 			setTimeout(() => {
 				if (advancing.value) {
 					return
@@ -397,7 +397,7 @@ watch(() => props.showingResult, (showing) => {
 				} else {
 					emit('next')
 				}
-			}, MEET_AUTO_ADVANCE_MS)
+			}, 0)
 		} else if (props.currentChallenge.type !== 'meet') {
 			// Auto-skip: fill Next button with a gradient over AUTO_SKIP_DELAY_MS
 			autoAdvancing.value = true
