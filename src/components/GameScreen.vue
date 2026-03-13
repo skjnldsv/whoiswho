@@ -75,7 +75,7 @@
 						<div
 							class="timer-fill"
 							:style="{ width: (timeRemainingMs / currentChallenge.timeLimit * 100) + '%' }"
-							:class="{ 'timer-fill--warning': timeRemainingMs < 5000 }" />
+							:class="{ 'timer-fill--warning': (timeRemainingMs / currentChallenge.timeLimit * 100) < 20 }" />
 					</div>
 					<span class="timer-text">{{ Math.ceil(timeRemainingMs / 1000) }}s</span>
 				</div>
@@ -643,7 +643,7 @@ useHotKey('h', () => {
 }
 
 .timer-fill--warning {
-	background: var(--color-error, #e9322d);
+	background: #e9322d;
 }
 
 .timer-text {
