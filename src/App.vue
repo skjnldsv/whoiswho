@@ -10,9 +10,11 @@
 			:loading="loading"
 			:loadError="loadError"
 			:progress="progress"
+			:unlockedAchievementCount="unlockedIds.size"
 			@start="startGame"
 			@reset="handleReset"
 			@leaderboard="screen = 'leaderboard'"
+			@achievements="screen = 'achievements'"
 			@retry="retryFetch" />
 		<GameScreen
 			v-else-if="screen === 'game'"
@@ -45,32 +47,70 @@
 			:level="progress.level"
 			:mastered="masteredCount"
 			:total="totalCount"
+			:newlyUnlockedAchievements="newlyUnlockedAchievements"
 			@playAgain="startGame"
 			@goHome="handleGoHome"
-			@leaderboard="screen = 'leaderboard'" />
+			@leaderboard="screen = 'leaderboard'"
+			@achievements="screen = 'achievements'" />
 		<LeaderboardScreen
 			v-else-if="screen === 'leaderboard'"
 			@close="handleGoHome" />
+		<AchievementsScreen
+			v-else-if="screen === 'achievements'"
+			:unlockedIds="unlockedIds"
+			:loading="achievementsLoading"
+			@close="handleGoHome" />
+
+		<!-- Achievement unlock toast -->
+		<Transition name="achievement-pop">
+			<div v-if="achievementToast" class="achievement-toast">
+				<span class="achievement-toast-emoji">{{ achievementToast.emoji }}</span>
+				<div class="achievement-toast-text">
+					<div class="achievement-toast-title">
+						Achievement Unlocked!
+					</div>
+					<div class="achievement-toast-name">
+						{{ achievementToast.name }}
+					</div>
+				</div>
+			</div>
+		</Transition>
 	</div>
 </template>
 
 <script setup lang="ts">
+import type { Achievement } from './composables/useAchievements.ts'
+
 import { ref } from 'vue'
+import AchievementsScreen from './components/AchievementsScreen.vue'
 import GameScreen from './components/GameScreen.vue'
 import LeaderboardScreen from './components/LeaderboardScreen.vue'
 import ResultsScreen from './components/ResultsScreen.vue'
 import StartScreen from './components/StartScreen.vue'
+import { useAchievements } from './composables/useAchievements.ts'
 import { useGameEngine } from './composables/useGameEngine.ts'
 import { useLeaderboard } from './composables/useLeaderboard.ts'
 import { defaultProgress, resetProgress as doResetProgress } from './composables/useStorage.ts'
 
-const screen = ref<'start' | 'game' | 'results' | 'leaderboard'>('start')
+const screen = ref<'start' | 'game' | 'results' | 'leaderboard' | 'achievements'>('start')
 const hintText = ref<string | null>(null)
 const hintLevel = ref(0)
 const eliminatedOptions = ref<string[]>([])
 const revealedMask = ref<string | null>(null)
+const achievementToast = ref<Achievement | null>(null)
+const newlyUnlockedAchievements = ref<Achievement[]>([])
 
 const { submitScore } = useLeaderboard()
+
+const {
+	unlockedIds,
+	loading: achievementsLoading,
+	fetchAchievements,
+	checkAchievements,
+} = useAchievements()
+
+// Fetch achievements on app load
+fetchAchievements()
 
 const {
 	progress,
@@ -100,6 +140,31 @@ const {
 	retryFetch,
 } = useGameEngine()
 
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+
+/**
+ * Show newly unlocked achievements as sequential toasts.
+ *
+ * @param achievements List of newly unlocked achievements to display
+ */
+async function showAchievementToasts(achievements: Achievement[]): Promise<void> {
+	for (const achievement of achievements) {
+		if (toastTimer !== null) {
+			clearTimeout(toastTimer)
+		}
+		achievementToast.value = achievement
+		await new Promise<void>((resolve) => {
+			toastTimer = setTimeout(() => {
+				achievementToast.value = null
+				toastTimer = null
+				resolve()
+			}, 3000)
+		})
+		// Small gap between consecutive toasts
+		await new Promise<void>((resolve) => setTimeout(resolve, 300))
+	}
+}
+
 /**
  *
  */
@@ -108,17 +173,45 @@ function startGame() {
 	hintLevel.value = 0
 	eliminatedOptions.value = []
 	revealedMask.value = null
+	newlyUnlockedAchievements.value = []
 	startSession()
 	screen.value = 'game'
+
+	// Check time-of-day and weekend achievements when starting a session
+	const ctx = {
+		progress: progress.value,
+		sessionStats: sessionStats.value,
+		lives: lives.value,
+		maxLives,
+		totalCount: totalCount.value,
+		masteredCount: masteredCount.value,
+	}
+	checkAchievements(ctx).then((unlocked) => {
+		if (unlocked.length > 0) {
+			showAchievementToasts(unlocked)
+		}
+	})
 }
 
 /**
  *
  * @param answer The player's answer string
  */
-function handleAnswer(answer: string) {
+async function handleAnswer(answer: string) {
 	submitAnswer(answer)
 	hintText.value = null
+
+	const unlocked = await checkAchievements({
+		progress: progress.value,
+		sessionStats: sessionStats.value,
+		lives: lives.value,
+		maxLives,
+		totalCount: totalCount.value,
+		masteredCount: masteredCount.value,
+	})
+	if (unlocked.length > 0) {
+		showAchievementToasts(unlocked)
+	}
 }
 
 /**
@@ -146,7 +239,7 @@ function handleNext() {
 /**
  *
  */
-function endGame() {
+async function endGame() {
 	// Submit this session's XP and best streak to the leaderboard
 	const xp = sessionStats.value.xpEarned
 	if (xp > 0) {
@@ -157,6 +250,23 @@ function endGame() {
 	eliminatedOptions.value = []
 	revealedMask.value = null
 	endSession()
+
+	// Check session-end achievements
+	const unlocked = await checkAchievements({
+		progress: progress.value,
+		sessionStats: sessionStats.value,
+		lives: lives.value,
+		maxLives,
+		totalCount: totalCount.value,
+		masteredCount: masteredCount.value,
+		isSessionEnd: true,
+		sessionWon: !gameOver.value,
+	})
+	newlyUnlockedAchievements.value = unlocked
+	if (unlocked.length > 0) {
+		showAchievementToasts(unlocked)
+	}
+
 	screen.value = 'results'
 }
 
@@ -225,5 +335,55 @@ function handleReset() {
 	color: var(--color-main-text);
 	display: flex;
 	flex-direction: column;
+	position: relative;
+}
+
+/* ── Achievement toast ── */
+.achievement-toast {
+	position: fixed;
+	bottom: 24px;
+	left: 50%;
+	transform: translateX(-50%);
+	background: var(--color-main-background);
+	border: 2px solid var(--color-primary-element);
+	border-radius: var(--border-radius-container);
+	padding: 12px 20px;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	box-shadow: 0 4px 20px var(--color-box-shadow);
+	z-index: 10000;
+	min-width: 280px;
+	max-width: 400px;
+}
+
+.achievement-toast-emoji {
+	font-size: 1.8rem;
+	flex-shrink: 0;
+}
+
+.achievement-toast-title {
+	font-size: 0.72rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--color-primary-element);
+}
+
+.achievement-toast-name {
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: var(--color-main-text);
+}
+
+.achievement-pop-enter-active,
+.achievement-pop-leave-active {
+	transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.achievement-pop-enter-from,
+.achievement-pop-leave-to {
+	opacity: 0;
+	transform: translateX(-50%) translateY(16px);
 }
 </style>

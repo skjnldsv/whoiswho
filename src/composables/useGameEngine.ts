@@ -58,6 +58,9 @@ export interface SessionStats {
 	bestStreak: number
 	xpEarned: number
 	newlyMastered: string[]
+	lowestLives: number // lowest lives count reached in this session (for comeback achievements)
+	timedAnswerCount: number // number of answered timed challenges (timeLimit > 0)
+	totalResponseTime: number // sum of response times for timed answers (ms)
 }
 
 // OCS response envelope
@@ -80,6 +83,9 @@ export function useGameEngine() {
 		bestStreak: 0,
 		xpEarned: 0,
 		newlyMastered: [],
+		lowestLives: MAX_LIVES,
+		timedAnswerCount: 0,
+		totalResponseTime: 0,
 	})
 	const lives = ref(MAX_LIVES)
 	const maxLives = MAX_LIVES
@@ -142,6 +148,9 @@ export function useGameEngine() {
 			bestStreak: 0,
 			xpEarned: 0,
 			newlyMastered: [],
+			lowestLives: MAX_LIVES,
+			timedAnswerCount: 0,
+			totalResponseTime: 0,
 		}
 
 		// Restore persisted lives if a session was interrupted (e.g. force-close),
@@ -157,6 +166,20 @@ export function useGameEngine() {
 		progress.value.sessionActive = true
 		progress.value.sessionsPlayed++
 		progress.value.lastPlayed = Date.now()
+
+		// Track play date for day-streak and weekend achievements
+		const today = new Date().toISOString().substring(0, 10)
+		if (!progress.value.playDates) {
+			progress.value.playDates = []
+		}
+		if (!progress.value.playDates.includes(today)) {
+			progress.value.playDates.push(today)
+			// Keep only the last 35 dates (enough for 30-day streak check + buffer)
+			if (progress.value.playDates.length > 35) {
+				progress.value.playDates = progress.value.playDates.slice(-35)
+			}
+		}
+
 		saveProgress(progress.value)
 		nextChallenge()
 	}
@@ -239,10 +262,33 @@ export function useGameEngine() {
 			sessionStats.value.streak++
 			sessionStats.value.xpEarned += xp
 
+			// Track per-challenge-type correct counts for achievements
+			if (challenge.type === 'meet') {
+				progress.value.meetCount++
+			} else if (challenge.type === 'recognize') {
+				progress.value.recognizeCorrect++
+			} else if (challenge.type === 'pick-face') {
+				progress.value.pickFaceCorrect++
+			} else if (challenge.type === 'recall' || challenge.type === 'type') {
+				progress.value.recallCorrect++
+			}
+
 			// Award bonus XP for fast correct answers on timed challenges
 			if (challenge.timeLimit > 0 && responseTime > 0 && responseTime < challenge.timeLimit * FAST_ANSWER_THRESHOLD) {
 				applyXp(progress.value, FAST_ANSWER_BONUS_XP)
 				sessionStats.value.xpEarned += FAST_ANSWER_BONUS_XP
+			}
+
+			// Track fast answers for achievement purposes (only timed challenges count)
+			if (challenge.timeLimit > 0 && responseTime > 0) {
+				sessionStats.value.timedAnswerCount++
+				sessionStats.value.totalResponseTime += responseTime
+				if (responseTime < 3000) {
+					progress.value.fastAnswerCount++
+				}
+				if (responseTime < 2000) {
+					progress.value.veryFastAnswerCount++
+				}
 			}
 
 			// Award streak milestone bonus every STREAK_BONUS_INTERVAL consecutive correct answers
@@ -277,6 +323,9 @@ export function useGameEngine() {
 
 			lives.value--
 			progress.value.currentLives = lives.value
+			if (lives.value < sessionStats.value.lowestLives) {
+				sessionStats.value.lowestLives = lives.value
+			}
 			if (lives.value <= 0) {
 				gameOver.value = true
 				endSession()
