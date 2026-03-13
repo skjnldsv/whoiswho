@@ -5,6 +5,28 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+## [1.1.0] - 2026-03-13
+
+### Added
+
+- **Achievement system** with 37 unlockable achievements across 7 categories:
+  - **Learning**: milestone achievements for mastering people (first, 5, 10, 25, 50, all)
+  - **Streak**: consecutive-correct-answer bonuses (5, 10, 25, 50 streak)
+  - **Speed**: rewards for answering within tight time limits (lightning, quick-draw)
+  - **Progression**: XP and level milestones (100, 500, 1 000, 5 000 XP; levels 5, 10)
+  - **Dedication**: play-count and day-streak rewards (7-day streak, 30 sessions, ...)
+  - **Accuracy**: error-free session achievements
+  - **Special**: time-of-day and novelty unlocks (night-owl, early-bird, weekend warrior, ...)
+- **Achievements screen**: dedicated view listing all achievements with locked/unlocked state and progress counts
+- **Backend achievement persistence**: achievements are stored server-side per user so progress is preserved across browsers and devices
+  - `GET /apps/whoiswho/achievements` — fetch the authenticated user's unlocked achievement IDs
+  - `POST /apps/whoiswho/achievements/unlock` — unlock a specific achievement
+- **Best-streak leaderboard column**: the weekly and all-time leaderboards now include each user's all-time best streak
+
+### Changed
+
+- Leaderboard now surfaces `best_streak` alongside total and weekly scores
+
 ## [1.0.0] - 2026-03-12
 
 ### Added
