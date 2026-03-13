@@ -164,8 +164,6 @@ export function useGameEngine() {
 
 		gameOver.value = false
 		progress.value.sessionActive = true
-		progress.value.sessionXpEarned = 0
-		progress.value.sessionBestStreak = 0
 		progress.value.sessionsPlayed++
 		progress.value.lastPlayed = Date.now()
 
@@ -194,8 +192,6 @@ export function useGameEngine() {
 	function endSession() {
 		progress.value.sessionActive = false
 		progress.value.currentStreak = 0
-		progress.value.sessionXpEarned = 0
-		progress.value.sessionBestStreak = 0
 		saveProgress(progress.value)
 	}
 
@@ -339,8 +335,6 @@ export function useGameEngine() {
 		lastAnswerCorrect.value = isCorrect
 		lastAnswerClose.value = isClose
 		showingResult.value = true
-		progress.value.sessionXpEarned = sessionStats.value.xpEarned
-		progress.value.sessionBestStreak = sessionStats.value.bestStreak
 		saveProgress(progress.value)
 
 		return isCorrect
@@ -378,7 +372,6 @@ export function useGameEngine() {
 
 		applyXp(progress.value, -HINT_COST_FIRST)
 		sessionStats.value.xpEarned -= HINT_COST_FIRST
-		progress.value.sessionXpEarned = sessionStats.value.xpEarned
 		saveProgress(progress.value)
 
 		const person = currentChallenge.value.person
@@ -463,7 +456,6 @@ export function useGameEngine() {
 
 		applyXp(progress.value, -HINT_COST_SECOND)
 		sessionStats.value.xpEarned -= HINT_COST_SECOND
-		progress.value.sessionXpEarned = sessionStats.value.xpEarned
 		saveProgress(progress.value)
 
 		const type = currentChallenge.value.type

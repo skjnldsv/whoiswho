@@ -35,8 +35,6 @@ export interface GameProgress {
 	lastPlayed: number
 	currentLives: number // persisted lives to prevent force-close exploit
 	sessionActive: boolean // whether a session is currently in progress
-	sessionXpEarned: number // XP earned in the current/interrupted session (for crash recovery)
-	sessionBestStreak: number // best streak in the current/interrupted session (for crash recovery)
 	// Per-challenge-type correct counts (for achievement tracking)
 	meetCount: number
 	recognizeCorrect: number
@@ -65,8 +63,6 @@ export function defaultProgress(): GameProgress {
 		lastPlayed: 0,
 		currentLives: MAX_LIVES,
 		sessionActive: false,
-		sessionXpEarned: 0,
-		sessionBestStreak: 0,
 		meetCount: 0,
 		recognizeCorrect: 0,
 		pickFaceCorrect: 0,
