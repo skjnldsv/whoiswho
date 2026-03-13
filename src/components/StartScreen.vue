@@ -178,7 +178,7 @@ defineEmits<{
 	achievements: []
 	retry: []
 }>()
-const HERO_EMOJIS = ['🧑‍🤝‍🧑', '👫', '👬', '👭', '🫂']
+const HERO_EMOJIS = ['🧑‍🤝‍🧑', '👫', '👬', '👭']
 const heroEmoji = HERO_EMOJIS[Math.floor(Math.random() * HERO_EMOJIS.length)]
 
 const hasProgress = computed(() => props.progress.totalAnswered > 0)
