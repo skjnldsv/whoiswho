@@ -14,9 +14,9 @@ use OCP\AppFramework\Http\Attribute\ApiRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
-use OCP\Cache\ICacheFactory;
 use OCP\Http\Client\IClientService;
 use OCP\ICache;
+use OCP\ICacheFactory;
 use OCP\IRequest;
 
 class TeamController extends OCSController {
