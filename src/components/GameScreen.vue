@@ -884,6 +884,19 @@ kbd {
 		padding-top: 8px;
 		z-index: 5;
 	}
+
+	/* Meet (discover) phase: let the card + "Got it" button size naturally */
+	.game-body--meet-pending {
+		flex: 1;
+		min-height: 0;
+		align-items: center;
+	}
+
+	.game-body--meet-pending .card-column {
+		flex: 0 0 auto;
+		max-height: none;
+		border-bottom: none;
+	}
 }
 
 /* ── Name badge (pick-face left column) ─────────────────────────────────────*/
