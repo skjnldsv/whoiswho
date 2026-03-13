@@ -327,7 +327,7 @@ h1 {
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-container);
 	padding: 18px;
-	overflow: hidden;
+	overflow: scroll;
 	display: flex;
 	flex-direction: column;
 }
