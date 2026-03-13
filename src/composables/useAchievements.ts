@@ -239,7 +239,7 @@ export function useAchievements() {
 			'near-perfect': isSessionEnd && sessionWon && sessionStats.answered >= 100 && accuracy >= 0.95,
 
 			// Fun & Special
-			'comeback-champion': isSessionEnd && sessionWon && lives === 1,
+			'comeback-champion': isSessionEnd && sessionWon && sessionStats.lowestLives === 1,
 			'night-owl': nowHour >= 0 && nowHour < 5,
 			'early-bird': nowHour >= 5 && nowHour < 7,
 			'weekend-warrior': (nowDay === 0 || nowDay === 6) && playedSaturday && playedSunday,
