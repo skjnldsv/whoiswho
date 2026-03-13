@@ -67,6 +67,9 @@
 		<p class="prompt">
 			Complete the name:
 		</p>
+		<p class="sub-prompt">
+			{{ t('whoiswho', 'First letter of each word is shown — fill in the blanks.') }}
+		</p>
 		<p class="masked-name">
 			{{ showingResult ? challenge.correctAnswer : (revealedMask || challenge.maskedName) }}
 		</p>
@@ -93,6 +96,9 @@
 	<div v-else-if="challenge.type === 'type'" class="type-area">
 		<p class="prompt">
 			Type this person's full name:
+		</p>
+		<p class="sub-prompt">
+			{{ t('whoiswho', 'No clues this time — type from memory!') }}
 		</p>
 		<template v-if="showingResult">
 			<p class="masked-name">
