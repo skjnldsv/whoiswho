@@ -198,8 +198,13 @@ function startGame() {
  * @param answer The player's answer string
  */
 async function handleAnswer(answer: string) {
+	const xpBefore = sessionStats.value.xpEarned
 	submitAnswer(answer)
 	hintText.value = null
+	const xpDelta = sessionStats.value.xpEarned - xpBefore
+	if (xpDelta > 0) {
+		submitScore(xpDelta, sessionStats.value.bestStreak)
+	}
 
 	const unlocked = await checkAchievements({
 		progress: progress.value,
@@ -240,11 +245,6 @@ function handleNext() {
  *
  */
 async function endGame() {
-	// Submit this session's XP and best streak to the leaderboard
-	const xp = sessionStats.value.xpEarned
-	if (xp > 0) {
-		submitScore(xp, sessionStats.value.bestStreak)
-	}
 	hintText.value = null
 	hintLevel.value = 0
 	eliminatedOptions.value = []
