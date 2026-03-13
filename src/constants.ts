@@ -67,7 +67,7 @@ export const ANSWER_TIME_LIMITS = {
 	meet: 0,
 	recognize: 5_000,
 	'pick-face': 5_000,
-	recall: 10_000,
+	recall: 15_000,
 	type: 15_000,
 } as const
 
