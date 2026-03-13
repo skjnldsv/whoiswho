@@ -97,6 +97,9 @@
 		<p class="prompt">
 			Type this person's full name:
 		</p>
+		<p class="sub-prompt">
+			{{ t('whoiswho', 'No clues this time — type from memory!') }}
+		</p>
 		<template v-if="showingResult">
 			<p class="masked-name">
 				{{ challenge.correctAnswer }}
