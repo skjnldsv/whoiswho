@@ -248,32 +248,61 @@ useHotKey(['1', '2', '3', '4'], (e) => {
 	}
 })
 
+/** Number of columns in the choice/face grid */
+const GRID_COLUMNS = 2
+
 /**
- * Move keyboard focus by `direction` steps through visible options, wrapping around.
- * If the current focusedKey is no longer visible (e.g. was eliminated), indexOf
- * returns -1, which causes navigation to start cleanly from either end.
+ * Move keyboard focus in the 2-column grid layout.
+ * Horizontal navigation (left/right) wraps within the same row.
+ * Vertical navigation (up/down) moves to the same column in the adjacent row.
  *
- * @param direction +1 for next, -1 for previous
+ * @param axis      'horizontal' for left/right, 'vertical' for up/down
+ * @param direction +1 for right/down, -1 for left/up
  */
-function navigateOptions(direction: 1 | -1) {
+function navigateGrid(axis: 'horizontal' | 'vertical', direction: 1 | -1) {
 	const keys = getVisibleKeys()
 	if (keys.length === 0) {
 		return
 	}
-	// indexOf returns -1 when focusedKey is missing/eliminated; navigation still
-	// wraps correctly because -1 + 1 = 0 (first) and -1 - 1 = -2 < 0 → last.
 	const currentIdx = focusedKey.value !== null ? keys.indexOf(focusedKey.value) : -1
-	let nextIdx = currentIdx + direction
-	if (nextIdx < 0) {
-		nextIdx = keys.length - 1
-	} else if (nextIdx >= keys.length) {
-		nextIdx = 0
+	if (currentIdx === -1) {
+		focusedKey.value = direction > 0 ? keys[0] : keys[keys.length - 1]
+		return
+	}
+
+	let nextIdx: number
+	if (axis === 'horizontal') {
+		// Stay within the same row; wrap around at row boundaries
+		const rowStart = Math.floor(currentIdx / GRID_COLUMNS) * GRID_COLUMNS
+		const rowEnd = Math.min(rowStart + GRID_COLUMNS, keys.length) - 1
+		nextIdx = currentIdx + direction
+		if (nextIdx < rowStart) {
+			nextIdx = rowEnd
+		} else if (nextIdx > rowEnd) {
+			nextIdx = rowStart
+		}
+	} else {
+		// Move to the same column in the adjacent row, wrapping at top/bottom
+		const col = currentIdx % GRID_COLUMNS
+		nextIdx = currentIdx + direction * GRID_COLUMNS
+		if (nextIdx < 0) {
+			// Wrap to the last row that contains this column; if that column
+			// doesn't exist in the last row, fall back to the last available item.
+			const lastRowStart = Math.floor((keys.length - 1) / GRID_COLUMNS) * GRID_COLUMNS
+			nextIdx = lastRowStart + col
+			if (nextIdx >= keys.length) {
+				nextIdx = keys.length - 1
+			}
+		} else if (nextIdx >= keys.length) {
+			// Wrap to the first row; if this column doesn't exist there, use the first item.
+			nextIdx = col < keys.length ? col : 0
+		}
 	}
 	focusedKey.value = keys[nextIdx]
 }
 
 // Arrow keys → navigate between options (recognize / pick-face only)
-useHotKey(['ArrowLeft', 'ArrowUp'], (e) => {
+useHotKey(['ArrowLeft'], (e) => {
 	if (props.showingResult || emitted.value) {
 		return
 	}
@@ -281,10 +310,10 @@ useHotKey(['ArrowLeft', 'ArrowUp'], (e) => {
 		return
 	}
 	e.preventDefault()
-	navigateOptions(-1)
+	navigateGrid('horizontal', -1)
 })
 
-useHotKey(['ArrowRight', 'ArrowDown'], (e) => {
+useHotKey(['ArrowRight'], (e) => {
 	if (props.showingResult || emitted.value) {
 		return
 	}
@@ -292,7 +321,29 @@ useHotKey(['ArrowRight', 'ArrowDown'], (e) => {
 		return
 	}
 	e.preventDefault()
-	navigateOptions(1)
+	navigateGrid('horizontal', 1)
+})
+
+useHotKey(['ArrowUp'], (e) => {
+	if (props.showingResult || emitted.value) {
+		return
+	}
+	if (props.challenge.type !== 'recognize' && props.challenge.type !== 'pick-face') {
+		return
+	}
+	e.preventDefault()
+	navigateGrid('vertical', -1)
+})
+
+useHotKey(['ArrowDown'], (e) => {
+	if (props.showingResult || emitted.value) {
+		return
+	}
+	if (props.challenge.type !== 'recognize' && props.challenge.type !== 'pick-face') {
+		return
+	}
+	e.preventDefault()
+	navigateGrid('vertical', 1)
 })
 
 // Enter → confirm the keyboard-focused option (recognize / pick-face only)
