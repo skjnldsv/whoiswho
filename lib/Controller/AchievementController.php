@@ -55,7 +55,6 @@ class AchievementController extends OCSController {
 		'comeback-kid',
 		'sharp-shooter',
 		'near-perfect',
-		'comeback-champion',
 		'night-owl',
 		'early-bird',
 		'weekend-warrior',
