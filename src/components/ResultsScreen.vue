@@ -125,7 +125,6 @@ const accuracy = computed(() => {
 	padding: 32px 20px;
 	width: 100%;
 	box-sizing: border-box;
-	overflow-y: auto;
 }
 
 .results-card {

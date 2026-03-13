@@ -121,12 +121,11 @@ onMounted(fetchScores)
 <style scoped>
 .leaderboard-screen {
 	width: 100%;
-	height: 100%;
+	min-height: 100%;
 	display: flex;
 	flex-direction: column;
 	background: var(--color-main-background);
 	color: var(--color-main-text);
-	overflow: hidden;
 }
 
 /* ── Header ── */
@@ -217,8 +216,6 @@ onMounted(fetchScores)
 
 /* ── List ── */
 .lb-list {
-	flex: 1;
-	overflow-y: auto;
 	padding: 12px 24px 24px;
 }
 

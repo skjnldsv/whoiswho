@@ -95,7 +95,6 @@ const unlockedCount = computed(() => props.unlockedIds.size)
 	min-height: 100%;
 	padding: 20px 24px;
 	box-sizing: border-box;
-	overflow-y: auto;
 }
 
 .achievements-header {
