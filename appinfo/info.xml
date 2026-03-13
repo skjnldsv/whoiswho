@@ -5,7 +5,7 @@
     <name>Who's Who</name>
     <summary>Learn the names of Nextcloud team members</summary>
     <description><![CDATA[A Duolingo-style memory game that helps you learn the names and faces of Nextcloud team members using spaced repetition.]]></description>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <licence>agpl</licence>
     <author mail="skjnldsv@protonmail.com">John Molakvoæ</author>
     <namespace>WhoIsWho</namespace>

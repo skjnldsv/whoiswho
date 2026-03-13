@@ -5,6 +5,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+## [1.1.1] - 2026-03-13
+
+### Added
+
+- Sub-prompt on recall challenge explaining the masked-name format
+- Sub-prompt on type challenge to distinguish it from recall
+
+### Fixed
+
+- 2×2 photo-grid keyboard navigation now uses correct row/column logic
+- Main panels scrolling: removed height caps and overflow constraints that prevented scrolling
+- Restored `#content overflow-y: auto` so page scrolling works correctly inside Nextcloud
+- Game mechanics: mastery detection, session cleanup, and state consistency
+- Comeback-champion achievement now uses `sessionStats.lowestLives` for correct detection
+- Removed redundant comeback-champion achievement duplicate
+- Recall challenge time limit corrected from 10 s to 15 s
+- Score is now submitted incrementally after each answer, preventing score loss on crash
+
 ## [1.1.0] - 2026-03-13
 
 ### Added
