@@ -190,7 +190,7 @@ import ChallengeInput from './ChallengeInput.vue'
 import PersonCard from './PersonCard.vue'
 import ProgressBar from './ProgressBar.vue'
 import { CLOSE_ANSWER_XP_DIVISOR, XP_PER_STAGE } from '../composables/useGameEngine.ts'
-import { FAST_ANSWER_BONUS_XP, FAST_ANSWER_THRESHOLD, AUTO_SKIP_DELAY_MS } from '../constants.ts'
+import { AUTO_SKIP_DELAY_MS, FAST_ANSWER_BONUS_XP, FAST_ANSWER_THRESHOLD } from '../constants.ts'
 
 const props = defineProps<{
 	currentChallenge: Challenge | null
