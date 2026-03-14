@@ -34,21 +34,40 @@ export function levenshtein(a: string, b: string): number {
 }
 
 /**
- * Return the display label for a leaderboard rank position (0-indexed).
+ * Return the display label for a leaderboard rank (1-indexed).
  *
- * @param i The 0-indexed rank position
+ * @param rank The 1-indexed rank number
  */
-export function rankLabel(i: number): string {
-	if (i === 0) {
+export function rankLabel(rank: number): string {
+	if (rank === 1) {
 		return '🥇'
 	}
-	if (i === 1) {
+	if (rank === 2) {
 		return '🥈'
 	}
-	if (i === 2) {
+	if (rank === 3) {
 		return '🥉'
 	}
-	return `#${i + 1}`
+	return `#${rank}`
+}
+
+/**
+ * Compute 1-indexed ranks for a sorted list of scores using standard competition
+ * ranking: entries with the same score receive the same rank.
+ * e.g. [30, 24, 24, 24, 10] → [1, 2, 2, 2, 5]
+ *
+ * @param scores Array of score values, assumed to be sorted descending
+ */
+export function computeRanks(scores: number[]): number[] {
+	const ranks: number[] = []
+	for (let i = 0; i < scores.length; i++) {
+		if (i === 0 || scores[i] !== scores[i - 1]) {
+			ranks.push(i + 1)
+		} else {
+			ranks.push(ranks[i - 1])
+		}
+	}
+	return ranks
 }
 
 /**

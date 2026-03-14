@@ -140,7 +140,7 @@
 							:key="entry.user_id"
 							class="lb-entry"
 							:class="{ 'is-me': entry.user_id === currentUser }">
-							<span class="lb-rank">{{ rankLabel(i) }}</span>
+							<span class="lb-rank">{{ rankLabel(currentRanks[i]) }}</span>
 							<span class="lb-name">{{ entry.display_name || entry.user_id }}</span>
 							<span class="lb-score">
 								<template v-if="lbTab === 'streak'">{{ entry.best_streak }} 🔥</template>
@@ -162,7 +162,7 @@ import type { GameProgress } from '../composables/useStorage.ts'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useLeaderboard } from '../composables/useLeaderboard.ts'
-import { rankLabel } from '../utils/strings.ts'
+import { computeRanks, rankLabel } from '../utils/strings.ts'
 
 const props = defineProps<{
 	allMembers: TeamMember[]
@@ -198,6 +198,19 @@ const currentList = computed(() => {
 		return weekly.value
 	}
 	return allTime.value
+})
+
+const currentRanks = computed<number[]>(() => {
+	const scores = currentList.value.map((e) => {
+		if (lbTab.value === 'streak') {
+			return e.best_streak ?? 0
+		}
+		if (lbTab.value === 'weekly') {
+			return e.week_score ?? 0
+		}
+		return e.total_score ?? 0
+	})
+	return computeRanks(scores)
 })
 
 onMounted(fetchScores)
