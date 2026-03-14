@@ -47,11 +47,11 @@
 				class="lb-entry"
 				:class="{
 					'is-me': entry.user_id === currentUser,
-					'rank-gold': i === 0,
-					'rank-silver': i === 1,
-					'rank-bronze': i === 2,
+					'rank-gold': currentRanks[i] === 1,
+					'rank-silver': currentRanks[i] === 2,
+					'rank-bronze': currentRanks[i] === 3,
 				}">
-				<span class="lb-rank">{{ rankLabel(i) }}</span>
+				<span class="lb-rank">{{ rankLabel(currentRanks[i]) }}</span>
 				<NcAvatar
 					class="lb-avatar"
 					:user="entry.user_id"
@@ -89,7 +89,7 @@ import type { LeaderboardEntry } from '../composables/useLeaderboard.ts'
 import { NcAvatar } from '@nextcloud/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useLeaderboard } from '../composables/useLeaderboard.ts'
-import { rankLabel } from '../utils/strings.ts'
+import { computeRanks, rankLabel } from '../utils/strings.ts'
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -107,9 +107,22 @@ const currentList = computed<LeaderboardEntry[]>(() => {
 	return allTime.value
 })
 
+const currentRanks = computed<number[]>(() => {
+	const scores = currentList.value.map((e) => {
+		if (tab.value === 'streak') {
+			return e.best_streak ?? 0
+		}
+		if (tab.value === 'weekly') {
+			return e.week_score ?? 0
+		}
+		return e.total_score ?? 0
+	})
+	return computeRanks(scores)
+})
+
 const myRank = computed(() => {
 	const idx = currentList.value.findIndex((e) => e.user_id === currentUser)
-	return idx >= 0 ? idx + 1 : 0
+	return idx >= 0 ? currentRanks.value[idx] : 0
 })
 
 /**
