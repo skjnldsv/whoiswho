@@ -96,7 +96,7 @@
 					</div>
 					<div class="mechanic-item">
 						<span class="mechanic-icon">❤️</span>
-						<p><strong>Lives</strong> — you have 3 per session. Only outright wrong answers and time-outs cost a life; skipping and close answers (typos) do not. Hearts cannot be regained once lost.</p>
+						<p><strong>Lives</strong> — you have 3 per session. Only outright wrong answers and time-outs cost a life; skipping and close answers (typos) do not. Earn an extra life back every 20 correct answers in a row (up to 3).</p>
 					</div>
 					<div class="mechanic-item">
 						<span class="mechanic-icon">💡</span>

@@ -84,6 +84,10 @@ export const STREAK_BONUS_INTERVAL = 5
 /** XP awarded each time the player reaches a streak bonus milestone. */
 export const STREAK_BONUS_XP = 5
 
+// ── Life refill ───────────────────────────────────────────────────────────────
+/** Number of consecutive correct answers required to earn an extra life. */
+export const LIFE_REFILL_STREAK = 20
+
 // ── Placeholder ─────────────────────────────────────────────────────────────
 /** Nextcloud placeholder photo URL — members with this URL are excluded. */
 export const PLACEHOLDER_PHOTO = 'https://nextcloud.com/c/themes/nextcloud-theme/dist/img/person.jpg'

@@ -39,7 +39,7 @@ Wrong answers regress a person back one stage and show them again sooner. Member
 **Lives ❤️**
 - You start each session with **3 lives**.
 - Only outright wrong answers and time-outs cost a life. Skipping ("I don't know") and close answers do **not** cost a life.
-- Lives **cannot be regained** once lost. The session ends when you run out of lives or when there are no more challenges due.
+- **Life refill**: earn an extra life (up to the maximum of 3) for every 20 correct answers in a row.
 
 **Countdown timers ⏱️**
 - Each challenge except *Meet* has a time limit: Recognize / Pick-face 5 s, Recall 10 s, Type 15 s.
@@ -49,7 +49,7 @@ Wrong answers regress a person back one stage and show them again sooner. Member
 
 - 🧠 Spaced repetition scheduling (30 s → 2 min → 10 min between reviews)
 - 🎯 Four challenge types including photo recognition
-- ❤️ 3 lives per session (wrong answers and time-outs only; close answers and skips are free)
+- ❤️ 3 lives per session with **life refills** (every 20 correct in a row restores a life)
 - ⚡ Speed bonus (+2 XP) for fast answers; streak milestone bonus (+5 XP every 5 in a row)
 - ⏱️ Countdown timers per challenge type (5 s / 10 s / 15 s)
 - 💡 Two-level hint system (costs XP)

@@ -58,6 +58,7 @@ class AchievementController extends OCSController {
 		'night-owl',
 		'early-bird',
 		'weekend-warrior',
+		'near-miss',
 	];
 
 	public function __construct(

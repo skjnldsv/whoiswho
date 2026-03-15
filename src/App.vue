@@ -24,6 +24,7 @@
 			:lastAnswerClose="lastAnswerClose"
 			:lastResponseTime="lastResponseTime"
 			:lastStreakBonus="lastStreakBonus"
+			:lifeRefillGained="lifeRefillGained"
 			:progress="progress"
 			:sessionStats="sessionStats"
 			:lives="lives"
@@ -124,6 +125,7 @@ const {
 	lastAnswerClose,
 	lastResponseTime,
 	lastStreakBonus,
+	lifeRefillGained,
 	loading,
 	loadError,
 	allMembers,

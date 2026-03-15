@@ -76,6 +76,7 @@ export const ACHIEVEMENTS: Achievement[] = [
 	{ id: 'night-owl', emoji: '🦉', name: 'Night Owl', description: 'Play between midnight and 5am', category: 'special' },
 	{ id: 'early-bird', emoji: '🐦', name: 'Early Bird', description: 'Play between 5am and 7am', category: 'special' },
 	{ id: 'weekend-warrior', emoji: '🎮', name: 'Weekend Warrior', description: 'Play on both Saturday and Sunday', category: 'special' },
+	{ id: 'near-miss', emoji: '💔', name: 'Near Miss', description: 'Lose a life on the very next question after earning a life refill', category: 'special' },
 ]
 
 /** Map from achievement ID to definition for O(1) lookup */
@@ -241,6 +242,7 @@ export function useAchievements() {
 			'night-owl': nowHour >= 0 && nowHour < 5,
 			'early-bird': nowHour >= 5 && nowHour < 7,
 			'weekend-warrior': (nowDay === 0 || nowDay === 6) && playedSaturday && playedSunday,
+			'near-miss': sessionStats.nearMiss,
 		}
 
 		const newlyUnlocked: Achievement[] = []
