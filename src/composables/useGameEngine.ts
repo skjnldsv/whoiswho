@@ -16,6 +16,7 @@ import {
 	FAST_ANSWER_THRESHOLD,
 	HINT_COST_FIRST,
 	HINT_COST_SECOND,
+	LIFE_REFILL_STREAK,
 	MAX_LIVES,
 	PLACEHOLDER_PHOTO,
 	REVEAL_FRACTION,
@@ -61,6 +62,7 @@ export interface SessionStats {
 	lowestLives: number // lowest lives count reached in this session (for comeback achievements)
 	timedAnswerCount: number // number of answered timed challenges (timeLimit > 0)
 	totalResponseTime: number // sum of response times for timed answers (ms)
+	nearMiss: boolean // lost a life on the very next question after a life refill
 }
 
 // OCS response envelope
@@ -86,6 +88,7 @@ export function useGameEngine() {
 		lowestLives: MAX_LIVES,
 		timedAnswerCount: 0,
 		totalResponseTime: 0,
+		nearMiss: false,
 	})
 	const lives = ref(MAX_LIVES)
 	const maxLives = MAX_LIVES
@@ -95,6 +98,7 @@ export function useGameEngine() {
 	const lastAnswerClose = ref(false)
 	const lastResponseTime = ref(0) // ms taken to answer the most recent challenge
 	const lastStreakBonus = ref(0) // XP bonus awarded for streak milestone (0 if none)
+	const lifeRefillGained = ref(false) // true when the most recent correct answer earned an extra life
 	// Track last shown person to avoid showing the same person twice in a row
 	const lastPersonId = ref<number | null>(null)
 	// Track when the current challenge was shown, to measure response time
@@ -151,6 +155,7 @@ export function useGameEngine() {
 			lowestLives: MAX_LIVES,
 			timedAnswerCount: 0,
 			totalResponseTime: 0,
+			nearMiss: false,
 		}
 
 		// Restore persisted lives if a session was interrupted (e.g. force-close),
@@ -230,6 +235,10 @@ export function useGameEngine() {
 		const challenge = currentChallenge.value
 		const isMeet = challenge.type === 'meet'
 
+		// Capture and reset the life-refill flag from the previous answer
+		const wasLifeRefilled = lifeRefillGained.value
+		lifeRefillGained.value = false
+
 		// Strip diacritics so answers are accent-agnostic (e.g. "Jose" matches "José")
 		const normalizedAnswer = normalizeText(answer)
 		const normalizedCorrect = normalizeText(challenge.correctAnswer)
@@ -303,6 +312,13 @@ export function useGameEngine() {
 				lastStreakBonus.value = 0
 			}
 
+			// Award an extra life every LIFE_REFILL_STREAK consecutive correct answers
+			if (sessionStats.value.streak >= LIFE_REFILL_STREAK && sessionStats.value.streak % LIFE_REFILL_STREAK === 0 && lives.value < MAX_LIVES) {
+				lives.value++
+				progress.value.currentLives = lives.value
+				lifeRefillGained.value = true
+			}
+
 			if (sessionStats.value.streak > sessionStats.value.bestStreak) {
 				sessionStats.value.bestStreak = sessionStats.value.streak
 			}
@@ -324,6 +340,11 @@ export function useGameEngine() {
 			sessionStats.value.wrong++
 			sessionStats.value.streak = 0
 			lastStreakBonus.value = 0
+
+			// Near miss: lost a life immediately after a life refill
+			if (wasLifeRefilled) {
+				sessionStats.value.nearMiss = true
+			}
 
 			lives.value--
 			progress.value.currentLives = lives.value
@@ -482,6 +503,7 @@ export function useGameEngine() {
 		lastAnswerClose,
 		lastResponseTime,
 		lastStreakBonus,
+		lifeRefillGained,
 		loading,
 		loadError,
 		allMembers,

@@ -135,6 +135,7 @@
 							<span v-if="lastAnswerCorrect">
 								Correct! +{{ xpEarned }} XP
 								<span v-if="lastStreakBonus > 0" class="streak-bonus">🔥 +{{ lastStreakBonus }} streak</span>
+								<span v-if="lifeRefillGained" class="life-refill-bonus">❤️ +1 life!</span>
 								<span v-if="lastResponseTime > 0" class="response-time">· {{ (lastResponseTime / 1000).toFixed(1) }}s</span>
 							</span>
 							<span v-else-if="lastAnswerClose">So close! It's <strong>{{ currentChallenge.correctAnswer }}</strong> (+{{ xpEarned }} XP)</span>
@@ -165,6 +166,13 @@
 		<Transition name="pop">
 			<div v-if="streakMilestone" class="streak-popup">
 				🔥 {{ streakMilestone }} streak!
+			</div>
+		</Transition>
+
+		<!-- Life refill popup -->
+		<Transition name="pop">
+			<div v-if="showLifeRefill" class="life-refill-popup">
+				❤️ +1 life!
 			</div>
 		</Transition>
 
@@ -199,6 +207,7 @@ const props = defineProps<{
 	lastAnswerClose: boolean
 	lastResponseTime: number
 	lastStreakBonus: number
+	lifeRefillGained: boolean
 	progress: GameProgress
 	sessionStats: SessionStats
 	lives: number
@@ -225,6 +234,7 @@ const xpEarned = ref(0)
 const xpPopup = ref(0)
 const xpPopupKey = ref(0)
 const streakMilestone = ref(0)
+const showLifeRefill = ref(false)
 const showConfetti = ref(false)
 // Prevent double-submission of the meet challenge
 const answered = ref(false)
@@ -349,6 +359,16 @@ watch(() => props.sessionStats.streak, (streak) => {
 		streakMilestone.value = streak
 		setTimeout(() => {
 			streakMilestone.value = 0
+		}, 2000)
+	}
+})
+
+// Watch for life refill events
+watch(() => props.lifeRefillGained, (gained) => {
+	if (gained) {
+		showLifeRefill.value = true
+		setTimeout(() => {
+			showLifeRefill.value = false
 		}, 2000)
 	}
 })
@@ -658,6 +678,11 @@ useHotKey('h', () => {
 }
 
 .streak-bonus {
+	font-weight: 700;
+	opacity: 0.95;
+}
+
+.life-refill-bonus {
 	font-weight: 700;
 	opacity: 0.95;
 }
@@ -975,6 +1000,19 @@ kbd {
 	font-size: 1.5rem;
 	font-weight: 800;
 	color: var(--color-element-warning);
+	pointer-events: none;
+	z-index: 100;
+	animation: streakBounce 2s ease-out forwards;
+}
+
+.life-refill-popup {
+	position: fixed;
+	top: 38%;
+	inset-inline-start: 50%;
+	transform: translateX(-50%);
+	font-size: 1.5rem;
+	font-weight: 800;
+	color: #e74c3c;
 	pointer-events: none;
 	z-index: 100;
 	animation: streakBounce 2s ease-out forwards;
