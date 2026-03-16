@@ -22,7 +22,9 @@
     "lint": "eslint src",
     "lint:fix": "eslint --fix src",
     "stylelint": "stylelint css/*.css css/*.scss src/**/*.scss src/**/*.vue",
-    "stylelint:fix": "stylelint css/*.css css/*.scss src/**/*.scss src/**/*.vue --fix"
+    "stylelint:fix": "stylelint css/*.css css/*.scss src/**/*.scss src/**/*.vue --fix",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@nextcloud/axios": "^2.5.2",
