@@ -22,8 +22,8 @@ vi.mock('@nextcloud/browser-storage', () => {
 })
 
 import { MAX_LIVES } from '../constants.ts'
-import { defaultProgress, getPersonProgress } from '../composables/useStorage.ts'
-import type { GameProgress } from '../composables/useStorage.ts'
+import { defaultProgress, getPersonProgress } from './useStorage.ts'
+import type { GameProgress } from './useStorage.ts'
 
 describe('defaultProgress', () => {
 	it('returns a progress object with zero scores', () => {

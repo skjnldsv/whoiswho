@@ -22,9 +22,9 @@ vi.mock('@nextcloud/browser-storage', () => {
 })
 
 import { ACTIVE_POOL_SIZE, INTERVALS } from '../constants.ts'
-import { nextReviewAt, pickNextPerson } from '../composables/useSpacedRepetition.ts'
-import { defaultProgress } from '../composables/useStorage.ts'
-import type { GameProgress } from '../composables/useStorage.ts'
+import { nextReviewAt, pickNextPerson } from './useSpacedRepetition.ts'
+import { defaultProgress } from './useStorage.ts'
+import type { GameProgress } from './useStorage.ts'
 import type { TeamMember } from '../types.ts'
 
 /** Create a minimal TeamMember for testing. */

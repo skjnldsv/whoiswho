@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { computeRanks, levenshtein, normalizeText, rankLabel, shuffle } from '../utils/strings.ts'
+import { computeRanks, levenshtein, normalizeText, rankLabel, shuffle } from './strings.ts'
 
 describe('normalizeText', () => {
 	it('trims whitespace and lowercases', () => {

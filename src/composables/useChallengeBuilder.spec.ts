@@ -27,9 +27,9 @@ import {
 	generateMaskedName,
 	getRandomOptions,
 	getRandomPhotoOptions,
-} from '../composables/useChallengeBuilder.ts'
-import { defaultProgress } from '../composables/useStorage.ts'
-import type { GameProgress } from '../composables/useStorage.ts'
+} from './useChallengeBuilder.ts'
+import { defaultProgress } from './useStorage.ts'
+import type { GameProgress } from './useStorage.ts'
 import type { TeamMember } from '../types.ts'
 
 /** Create a minimal TeamMember for testing. */

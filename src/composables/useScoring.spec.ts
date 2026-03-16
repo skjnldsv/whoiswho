@@ -35,9 +35,9 @@ import {
 	recordCorrect,
 	recordSkip,
 	recordWrong,
-} from '../composables/useScoring.ts'
-import { defaultProgress } from '../composables/useStorage.ts'
-import type { GameProgress } from '../composables/useStorage.ts'
+} from './useScoring.ts'
+import { defaultProgress } from './useStorage.ts'
+import type { GameProgress } from './useStorage.ts'
 
 describe('applyXp', () => {
 	let progress: GameProgress
