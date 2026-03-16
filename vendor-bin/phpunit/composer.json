@@ -1,0 +1,12 @@
+{
+    "require-dev": {
+        "phpunit/phpunit": "^10",
+        "nextcloud/ocp": "^31"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "platform": {
+            "php": "8.3"
+        }
+    }
+}
