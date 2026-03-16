@@ -10,13 +10,14 @@
         }
     ],
     "require-dev": {
-        "bamarni/composer-bin-plugin": "^1.8"
+        "bamarni/composer-bin-plugin": "^1.8",
+        "nextcloud/ocp": "^31"
     },
     "config": {
         "optimize-autoloader": true,
         "classmap-authoritative": true,
         "platform": {
-            "php": "7.4"
+            "php": "8.1"
         },
         "allow-plugins": {
             "bamarni/composer-bin-plugin": true
@@ -32,6 +33,6 @@
         "lint": "find . -name \\*.php -not -path './vendor/*' -not -path './vendor-bin/*' -not -path './build/*' -print0 | xargs -0 -n1 php -l",
         "cs:check": "php-cs-fixer fix --dry-run --diff",
         "cs:fix": "php-cs-fixer fix",
-        "test": "vendor-bin/phpunit/vendor/bin/phpunit --configuration phpunit.xml"
+        "test:unit": "vendor-bin/phpunit/vendor/bin/phpunit --configuration phpunit.xml"
     }
 }
