@@ -7,21 +7,34 @@
 
 declare(strict_types=1);
 
-// When running inside the Nextcloud server context (CI: server at ../../, app at apps/whoiswho/)
-// lib/base.php bootstraps NC's autoloader which provides OCP class loading.
-$ncBase = __DIR__ . '/../../lib/base.php';
-if (file_exists($ncBase)) {
-	if (!defined('PHPUNIT_RUN')) {
-		define('PHPUNIT_RUN', 1);
-	}
-	require_once $ncBase;
+// Load composer vendor autoloader (provides PHPUnit and any other dev dependencies).
+require_once __DIR__ . '/../vendor/autoload.php';
+
+// Register an autoloader for the Nextcloud OCP public API.
+//
+// CI context: the app lives at apps/<name>/ inside the NC server checkout.
+//   __DIR__ = apps/<name>/tests  →  dirname(__DIR__, 3) = server root
+//   OCP interfaces are in server root/lib/public/
+//
+// Local dev context: nextcloud/ocp stubs are installed via composer in vendor/.
+$serverRoot = dirname(__DIR__, 3);
+$serverLibPublic = $serverRoot . '/lib/public';
+
+if (is_dir($serverLibPublic) && file_exists($serverLibPublic . '/IRequest.php')) {
+	// NC server context: load OCP interfaces directly from lib/public/
+	spl_autoload_register(function (string $className) use ($serverLibPublic): void {
+		if (!str_starts_with($className, 'OCP\\')) {
+			return;
+		}
+		$relative = substr($className, 4); // strip 'OCP\'
+		$file = $serverLibPublic . '/' . str_replace('\\', '/', $relative) . '.php';
+		if (file_exists($file)) {
+			require_once $file;
+		}
+	});
 } else {
-	// Local dev fallback: vendor/ has phpunit + nextcloud/ocp stubs
-	require_once __DIR__ . '/../vendor/autoload.php';
-
+	// Local dev fallback: nextcloud/ocp stubs (no composer autoload, manual mapping needed)
 	$ocpDir = __DIR__ . '/../vendor/nextcloud/ocp';
-
-	// Register autoloader for the Nextcloud OCP public API (nextcloud/ocp has no composer autoload)
 	spl_autoload_register(function (string $className) use ($ocpDir): void {
 		foreach (['OCP', 'NCU'] as $prefix) {
 			if (!str_starts_with($className, $prefix . '\\')) {
