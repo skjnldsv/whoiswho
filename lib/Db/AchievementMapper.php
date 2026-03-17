@@ -40,7 +40,7 @@ class AchievementMapper extends QBMapper {
 	public function getUnlockCounts(): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('achievement_id')
-			->selectAlias($qb->func()->countDistinct('user_id'), 'cnt')
+			->selectAlias($qb->func()->count('user_id'), 'cnt')
 			->from($this->tableName)
 			->groupBy('achievement_id');
 		$result = $qb->executeQuery();
