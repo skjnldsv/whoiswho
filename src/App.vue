@@ -59,6 +59,7 @@
 		<AchievementsScreen
 			v-else-if="screen === 'achievements'"
 			:unlockedIds="unlockedIds"
+			:unlockCounts="unlockCounts"
 			:loading="achievementsLoading"
 			@close="handleGoHome" />
 
@@ -105,6 +106,7 @@ const { submitScore } = useLeaderboard()
 
 const {
 	unlockedIds,
+	unlockCounts,
 	loading: achievementsLoading,
 	fetchAchievements,
 	checkAchievements,

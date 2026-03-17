@@ -33,6 +33,28 @@ class AchievementMapper extends QBMapper {
 	}
 
 	/**
+	 * Return the number of distinct users who have unlocked each achievement.
+	 *
+	 * @return array<string, int> Map of achievement_id => unlock count
+	 */
+	public function getUnlockCounts(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('achievement_id')
+			->selectAlias($qb->func()->countDistinct('user_id'), 'cnt')
+			->from($this->tableName)
+			->groupBy('achievement_id');
+		$result = $qb->executeQuery();
+		$rows = $result->fetchAllAssociative();
+		$result->closeCursor();
+
+		$counts = [];
+		foreach ($rows as $row) {
+			$counts[$row['achievement_id']] = (int)$row['cnt'];
+		}
+		return $counts;
+	}
+
+	/**
 	 * Insert an achievement unlock record, ignoring duplicates.
 	 */
 	public function unlock(string $userId, string $achievementId): void {

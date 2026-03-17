@@ -128,6 +128,8 @@ function consecutiveDays(playDates: string[]): number {
 export function useAchievements() {
 	/** Set of achievement IDs the current user has already unlocked */
 	const unlockedIds = ref<Set<string>>(new Set())
+	/** Map of achievement ID to the number of users who have unlocked it */
+	const unlockCounts = ref<Record<string, number>>({})
 	const loading = ref(false)
 	const error = ref(false)
 
@@ -138,8 +140,12 @@ export function useAchievements() {
 		loading.value = true
 		error.value = false
 		try {
-			const { data } = await axios.get<OcsResponse<{ achievements: string[] }>>(generateOcsUrl('apps/whoiswho/achievements'))
-			unlockedIds.value = new Set(data.ocs.data.achievements ?? [])
+			const [achievementsRes, statsRes] = await Promise.all([
+				axios.get<OcsResponse<{ achievements: string[] }>>(generateOcsUrl('apps/whoiswho/achievements')),
+				axios.get<OcsResponse<{ stats: Record<string, number> }>>(generateOcsUrl('apps/whoiswho/achievements/stats')),
+			])
+			unlockedIds.value = new Set(achievementsRes.data.ocs.data.achievements ?? [])
+			unlockCounts.value = statsRes.data.ocs.data.stats ?? {}
 		} catch {
 			error.value = true
 		} finally {
@@ -261,6 +267,7 @@ export function useAchievements() {
 
 	return {
 		unlockedIds,
+		unlockCounts,
 		loading,
 		error,
 		fetchAchievements,
