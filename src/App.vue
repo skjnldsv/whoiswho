@@ -7,6 +7,9 @@
 		<StartScreen
 			v-if="screen === 'start'"
 			:allMembers="allMembers"
+			:filteredMembers="filteredMembers"
+			:selectedDepartment="selectedDepartment"
+			:availableDepartments="availableDepartments"
 			:loading="loading"
 			:loadError="loadError"
 			:progress="progress"
@@ -15,7 +18,8 @@
 			@reset="handleReset"
 			@leaderboard="screen = 'leaderboard'"
 			@achievements="screen = 'achievements'"
-			@retry="retryFetch" />
+			@retry="retryFetch"
+			@selectDepartment="selectedDepartment = $event" />
 		<GameScreen
 			v-else-if="screen === 'game'"
 			:currentChallenge="currentChallenge"
@@ -131,6 +135,9 @@ const {
 	loading,
 	loadError,
 	allMembers,
+	filteredMembers,
+	selectedDepartment,
+	availableDepartments,
 	masteredCount,
 	totalCount,
 	levelProgress,

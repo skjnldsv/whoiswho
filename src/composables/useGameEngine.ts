@@ -131,12 +131,26 @@ export function useGameEngine() {
 
 	const allMembers = computed(() => allMembersRaw.value.filter((m) => m.photo && m.name && m.photo !== PLACEHOLDER_PHOTO))
 
-	const masteredCount = computed(() => allMembers.value.filter((m) => {
+	/** Currently selected department to practice (null = all departments). */
+	const selectedDepartment = ref<string | null>(null)
+
+	/** Sorted list of departments extracted from the team roster. */
+	const availableDepartments = computed(() => {
+		const depts = new Set(allMembers.value.map((m) => m.department).filter(Boolean))
+		return Array.from(depts).sort()
+	})
+
+	/** Members filtered to the selected department (or all members when no filter). */
+	const filteredMembers = computed(() => selectedDepartment.value === null
+		? allMembers.value
+		: allMembers.value.filter((m) => m.department === selectedDepartment.value))
+
+	const masteredCount = computed(() => filteredMembers.value.filter((m) => {
 		const p = progress.value.people[m.id]
 		return p && p.stage >= 4
 	}).length)
 
-	const totalCount = computed(() => allMembers.value.length)
+	const totalCount = computed(() => filteredMembers.value.length)
 
 	const levelProgress = computed(() => computeLevelProgress(progress.value))
 
@@ -208,7 +222,7 @@ export function useGameEngine() {
 			return
 		}
 
-		const person = pickNextPerson(progress.value, allMembers.value, lastPersonId.value)
+		const person = pickNextPerson(progress.value, filteredMembers.value, lastPersonId.value)
 		if (!person) {
 			gameOver.value = true
 			endSession()
@@ -217,7 +231,7 @@ export function useGameEngine() {
 
 		lastPersonId.value = person.id
 		showingResult.value = false
-		currentChallenge.value = buildChallenge(person, progress.value, allMembers.value)
+		currentChallenge.value = buildChallenge(person, progress.value, filteredMembers.value)
 		challengeStartTime.value = Date.now()
 	}
 
@@ -507,6 +521,9 @@ export function useGameEngine() {
 		loading,
 		loadError,
 		allMembers,
+		filteredMembers,
+		selectedDepartment,
+		availableDepartments,
 		masteredCount,
 		totalCount,
 		levelProgress,

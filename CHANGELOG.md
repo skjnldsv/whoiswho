@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+## [1.2.0] - 2026-03-17
+
+### Added
+
+- **Department filter**: Choose a specific department to focus your practice session on — only team members from that department will appear in challenges. An "All" option restores the full roster. The filter is shown on the start screen as a row of chips and updates the member count in real time.
+- **Learning progress breakdown**: The start screen now shows a compact stat strip (Unseen / Learning / Mastered) so you can see at a glance how far through the roster you are — respects the active department filter.
+
 ## [1.1.1] - 2026-03-13
 
 ### Added

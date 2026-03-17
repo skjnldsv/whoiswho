@@ -17,7 +17,7 @@
 			</div>
 
 			<div v-if="hasProgress" class="resume-banner">
-				Welcome back! Level <strong>{{ level }}</strong> · <strong>{{ mastered }}/{{ total }}</strong> mastered · {{ xp }} XP
+				Welcome back! Level <strong>{{ level }}</strong> · <strong>{{ mastered }}/{{ total }}</strong> mastered{{ selectedDepartment ? ` in ${selectedDepartment}` : '' }} · {{ xp }} XP
 			</div>
 
 			<div class="actions">
@@ -41,6 +41,45 @@
 						↺ Reset Progress
 					</button>
 				</template>
+			</div>
+
+			<!-- Department filter -->
+			<div v-if="!loading && !loadError && availableDepartments.length > 0" class="dept-filter">
+				<span class="dept-filter-label">Focus on:</span>
+				<div class="dept-chips">
+					<button
+						class="dept-chip"
+						:class="{ active: selectedDepartment === null }"
+						@click="$emit('selectDepartment', null)">
+						All ({{ allMembers.length }})
+					</button>
+					<button
+						v-for="dept in availableDepartments"
+						:key="dept"
+						class="dept-chip"
+						:class="{ active: selectedDepartment === dept }"
+						@click="$emit('selectDepartment', dept)">
+						{{ dept }} ({{ allMembers.filter(m => m.department === dept).length }})
+					</button>
+				</div>
+			</div>
+
+			<!-- Progress breakdown (per stage) -->
+			<div v-if="hasProgress && !loading" class="stage-breakdown">
+				<div class="stage-breakdown-item">
+					<span class="breakdown-count">{{ stageBreakdown.unseen }}</span>
+					<span class="breakdown-label">Unseen</span>
+				</div>
+				<div class="stage-breakdown-divider" />
+				<div class="stage-breakdown-item">
+					<span class="breakdown-count">{{ stageBreakdown.learning }}</span>
+					<span class="breakdown-label">Learning</span>
+				</div>
+				<div class="stage-breakdown-divider" />
+				<div class="stage-breakdown-item breakdown-mastered">
+					<span class="breakdown-count">{{ stageBreakdown.mastered }}</span>
+					<span class="breakdown-label">Mastered ✓</span>
+				</div>
 			</div>
 
 			<div class="secondary-actions">
@@ -166,6 +205,9 @@ import { computeRanks, rankLabel } from '../utils/strings.ts'
 
 const props = defineProps<{
 	allMembers: TeamMember[]
+	filteredMembers: TeamMember[]
+	selectedDepartment: string | null
+	availableDepartments: string[]
 	loading: boolean
 	loadError: boolean
 	progress: GameProgress
@@ -177,15 +219,39 @@ defineEmits<{
 	leaderboard: []
 	achievements: []
 	retry: []
+	selectDepartment: [dept: string | null]
 }>()
 const HERO_EMOJIS = ['🧑‍🤝‍🧑', '👫', '👬', '👭']
 const heroEmoji = HERO_EMOJIS[Math.floor(Math.random() * HERO_EMOJIS.length)]
 
 const hasProgress = computed(() => props.progress.totalAnswered > 0)
-const mastered = computed(() => Object.values(props.progress.people).filter((p) => p.stage >= 4).length)
-const total = computed(() => props.allMembers.length)
+const mastered = computed(() => props.filteredMembers.filter((m) => {
+	const p = props.progress.people[m.id]
+	return p && p.stage >= 4
+}).length)
+const total = computed(() => props.filteredMembers.length)
 const level = computed(() => props.progress.level)
 const xp = computed(() => props.progress.xp)
+
+/** Per-stage breakdown within the active member set (filtered or all). */
+const stageBreakdown = computed(() => {
+	const people = props.progress.people
+	let unseen = 0
+	let learning = 0
+	let mastered = 0
+	for (const m of props.filteredMembers) {
+		const p = people[m.id]
+		const stage = p ? p.stage : 0
+		if (stage === 0) {
+			unseen++
+		} else if (stage >= 4) {
+			mastered++
+		} else {
+			learning++
+		}
+	}
+	return { unseen, learning, mastered }
+})
 
 // Inline leaderboard
 const { allTime, weekly, streak, loading: lbLoading, error: lbError, currentUser, fetchScores } = useLeaderboard()
@@ -559,6 +625,100 @@ h1 {
 	font-weight: 700;
 	color: var(--color-primary-element);
 	flex-shrink: 0;
+}
+
+/* ── Department filter ── */
+.dept-filter {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	max-width: 640px;
+}
+
+.dept-filter-label {
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.dept-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	justify-content: center;
+}
+
+.dept-chip {
+	margin: 0;
+	padding: 5px 14px;
+	border-radius: var(--border-radius-pill);
+	border: 1px solid var(--color-border-dark);
+	background: var(--color-main-background);
+	color: var(--color-text-maxcontrast);
+	font-size: 0.8rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.dept-chip:hover {
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+.dept-chip.active {
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	border-color: var(--color-primary-element);
+}
+
+/* ── Stage breakdown ── */
+.stage-breakdown {
+	display: flex;
+	align-items: center;
+	gap: 0;
+	background: var(--color-background-dark);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-container);
+	padding: 10px 24px;
+	max-width: 400px;
+	width: 100%;
+}
+
+.stage-breakdown-item {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+}
+
+.stage-breakdown-divider {
+	width: 1px;
+	height: 32px;
+	background: var(--color-border);
+}
+
+.breakdown-count {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: var(--color-main-text);
+	line-height: 1;
+}
+
+.breakdown-label {
+	font-size: 0.72rem;
+	color: var(--color-text-maxcontrast);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.breakdown-mastered .breakdown-count {
+	color: var(--color-success, #46ba61);
 }
 
 /* ── Responsive: stack on narrow screens ── */
