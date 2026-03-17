@@ -5,6 +5,8 @@
 /build/
 node_modules/
 /.php-cs-fixer.cache
+.phpunit.result.cache
 js/*hot-update.*
 js
 css
+/coverage/

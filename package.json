@@ -22,7 +22,9 @@
     "lint": "eslint src",
     "lint:fix": "eslint --fix src",
     "stylelint": "stylelint css/*.css css/*.scss src/**/*.scss src/**/*.vue",
-    "stylelint:fix": "stylelint css/*.css css/*.scss src/**/*.scss src/**/*.vue --fix"
+    "stylelint:fix": "stylelint css/*.css css/*.scss src/**/*.scss src/**/*.vue --fix",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@nextcloud/axios": "^2.5.2",
@@ -47,9 +49,11 @@
     "@nextcloud/stylelint-config": "^3.2.1",
     "@nextcloud/typings": "^1.10.0",
     "@nextcloud/vite-config": "^2.5.2",
+    "@vitest/coverage-v8": "^4.1.0",
     "@vue/tsconfig": "^0.9.0",
     "typescript": "^5.8.2",
     "vite": "^7.3.1",
+    "vitest": "^4.1.0",
     "vue-tsc": "^3.2.5"
   }
 }
