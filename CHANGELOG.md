@@ -5,6 +5,28 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+## [1.2.0] - 2026-03-17
+
+### Added
+
+- **Achievement user statistics**: each achievement now shows how many other users have unlocked it, displayed inline beneath the achievement description
+- **Life refill mechanic**: every 20 consecutive correct answers awards an extra life (up to the session maximum); a ❤️ +1 life! badge and floating popup confirm the bonus
+- **Near-miss achievement** (💔): awarded when a player loses a life immediately after earning a life refill
+
+### Fixed
+
+- Leaderboard medal display now uses tie-aware standard competition ranking (1224 instead of 1234)
+- `AchievementMapper::countDistinct()` replaced with the correct `count()` call, fixing a PHP fatal on the achievements statistics endpoint
+
+### Changed
+
+- `@nextcloud/vue` bumped from 9.5.0 to 9.6.0
+
+### Developer
+
+- Added PHPUnit and Vitest test suites with co-located `.spec.ts` files
+- CI workflows updated to use the shared `nextcloud/.github` workflow templates
+
 ## [1.1.1] - 2026-03-13
 
 ### Added
