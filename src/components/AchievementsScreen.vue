@@ -34,14 +34,15 @@
 							{{ achievement.emoji }}
 						</div>
 						<div class="achievement-info">
-							<div class="achievement-name">
-								{{ achievement.name }}
+							<div class="achievement-name-row">
+								<span class="achievement-name">{{ achievement.name }}</span>
+								<span
+									v-if="statsLabels[achievement.id]"
+									class="achievement-stats"
+									:title="statsTooltips[achievement.id]">{{ statsLabels[achievement.id] }}</span>
 							</div>
 							<div class="achievement-desc">
 								{{ achievement.description }}
-							</div>
-							<div v-if="unlockCounts[achievement.id] !== undefined" class="achievement-stats">
-								{{ unlockCounts[achievement.id] }} {{ unlockCounts[achievement.id] === 1 ? 'user' : 'users' }} unlocked this
 							</div>
 						</div>
 						<div v-if="unlockedIds.has(achievement.id)" class="achievement-badge">
@@ -91,6 +92,29 @@ const achievementsByCategory = computed(() => {
 
 const total = ACHIEVEMENTS.length
 const unlockedCount = computed(() => props.unlockedIds.size)
+
+const stats = computed<{ labels: Record<string, string>, tooltips: Record<string, string> }>(() => {
+	const empty = { labels: {}, tooltips: {} }
+	const counts = Object.values(props.unlockCounts)
+	if (counts.length === 0) {
+		return empty
+	}
+	const maxCount = Math.max(...counts)
+	if (maxCount === 0) {
+		return empty
+	}
+	const labels: Record<string, string> = {}
+	const tooltips: Record<string, string> = {}
+	for (const [id, count] of Object.entries(props.unlockCounts)) {
+		const pct = Math.round((count / maxCount) * 100)
+		labels[id] = `${pct}% unlocked`
+		tooltips[id] = `${count} out of ${maxCount} players`
+	}
+	return { labels, tooltips }
+})
+
+const statsLabels = computed<Record<string, string>>(() => stats.value.labels)
+const statsTooltips = computed<Record<string, string>>(() => stats.value.tooltips)
 </script>
 
 <style scoped>
@@ -200,6 +224,13 @@ const unlockedCount = computed(() => props.unlockedIds.size)
 	min-width: 0;
 }
 
+.achievement-name-row {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	min-width: 0;
+}
+
 .achievement-name {
 	font-size: 0.9rem;
 	font-weight: 700;
@@ -207,6 +238,7 @@ const unlockedCount = computed(() => props.unlockedIds.size)
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	min-width: 0;
 }
 
 .achievement-desc {
@@ -218,8 +250,9 @@ const unlockedCount = computed(() => props.unlockedIds.size)
 .achievement-stats {
 	font-size: 0.72rem;
 	color: var(--color-text-maxcontrast);
-	margin-top: 4px;
 	opacity: 0.8;
+	white-space: nowrap;
+	flex-shrink: 0;
 }
 
 .achievement-badge {
