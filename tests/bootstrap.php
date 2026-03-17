@@ -16,10 +16,10 @@ if (file_exists($ncBase)) {
 	}
 	require_once $ncBase;
 } else {
-	// Local dev fallback: vendor-bin has phpunit + nextcloud/ocp stubs with manual registration
-	require_once __DIR__ . '/../vendor-bin/phpunit/vendor/autoload.php';
+	// Local dev fallback: vendor/ has phpunit + nextcloud/ocp stubs
+	require_once __DIR__ . '/../vendor/autoload.php';
 
-	$ocpDir = __DIR__ . '/../vendor-bin/phpunit/vendor/nextcloud/ocp';
+	$ocpDir = __DIR__ . '/../vendor/nextcloud/ocp';
 
 	// Register autoloader for the Nextcloud OCP public API (nextcloud/ocp has no composer autoload)
 	spl_autoload_register(function (string $className) use ($ocpDir): void {
