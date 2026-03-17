@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- **Server-side progress persistence**: game progress (XP, level, learned people) is now stored in the Nextcloud database, enabling cross-device play and preventing data loss when browser storage is cleared
-  - `GET /apps/whoiswho/progress` — load the authenticated user's saved progress
-  - `PUT /apps/whoiswho/progress` — persist progress after each game action
-  - `DELETE /apps/whoiswho/progress` — erase server-side progress (triggered by the in-app reset button)
-- **Progress merge on startup**: when the app loads it merges local browser storage with the server copy, taking the most advanced state for each person so no progress is ever lost
+- **Backend progress persistence**: full game progress (XP, level, learning stages per person, streaks, play history) is now stored server-side per user so progress is preserved across browsers and devices
+  - `GET /apps/whoiswho/progress` — fetch the authenticated user's stored progress
+  - `PUT /apps/whoiswho/progress` — persist the current progress blob
+  - `DELETE /apps/whoiswho/progress` — erase the user's server-side progress
+- On startup the app merges the local browser copy with the server copy, taking the most advanced learning stage for each person so no progress is ever lost
 
 
 ## [1.1.1] - 2026-03-13
