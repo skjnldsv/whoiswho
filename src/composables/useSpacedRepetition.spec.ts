@@ -21,11 +21,12 @@ vi.mock('@nextcloud/browser-storage', () => {
 	}
 })
 
+import type { TeamMember } from '../types.ts'
+import type { GameProgress } from './useStorage.ts'
+
 import { ACTIVE_POOL_SIZE, INTERVALS } from '../constants.ts'
 import { nextReviewAt, pickNextPerson } from './useSpacedRepetition.ts'
 import { defaultProgress } from './useStorage.ts'
-import type { GameProgress } from './useStorage.ts'
-import type { TeamMember } from '../types.ts'
 
 /** Create a minimal TeamMember for testing. */
 function makeMember(id: number, name = `Person ${id}`): TeamMember {
@@ -101,7 +102,9 @@ describe('pickNextPerson', () => {
 		const results = new Set<number>()
 		for (let i = 0; i < 50; i++) {
 			const r = pickNextPerson(progress, members, 1)
-			if (r) results.add(r.id)
+			if (r) {
+				results.add(r.id)
+			}
 		}
 		expect(results.has(2)).toBe(true)
 	})
@@ -110,10 +113,15 @@ describe('pickNextPerson', () => {
 		// Set up one active person who is overdue
 		const now = Date.now()
 		progress.people[1] = {
-			personId: 1, stage: 2, correctStreak: 0,
-			totalCorrect: 2, totalWrong: 0,
-			lastSeen: now - 60_000, nextReview: now - 1, // overdue
-			avgResponseTime: 0, lastResponseTime: 0,
+			personId: 1,
+			stage: 2,
+			correctStreak: 0,
+			totalCorrect: 2,
+			totalWrong: 0,
+			lastSeen: now - 60_000,
+			nextReview: now - 1, // overdue
+			avgResponseTime: 0,
+			lastResponseTime: 0,
 		}
 
 		const members = [makeMember(1), makeMember(2), makeMember(3)]
@@ -126,10 +134,15 @@ describe('pickNextPerson', () => {
 		const now = Date.now()
 		// One active member (not yet overdue)
 		progress.people[1] = {
-			personId: 1, stage: 1, correctStreak: 0,
-			totalCorrect: 1, totalWrong: 0,
-			lastSeen: now, nextReview: now + 99_999,
-			avgResponseTime: 0, lastResponseTime: 0,
+			personId: 1,
+			stage: 1,
+			correctStreak: 0,
+			totalCorrect: 1,
+			totalWrong: 0,
+			lastSeen: now,
+			nextReview: now + 99_999,
+			avgResponseTime: 0,
+			lastResponseTime: 0,
 		}
 
 		// Members 2–ACTIVE_POOL_SIZE+1 are unseen
@@ -143,16 +156,26 @@ describe('pickNextPerson', () => {
 		const now = Date.now()
 		// All members are mastered (stage 4) and both are due
 		progress.people[1] = {
-			personId: 1, stage: 4, correctStreak: 5,
-			totalCorrect: 5, totalWrong: 0,
-			lastSeen: now - 20_000, nextReview: now - 20_000, // most overdue
-			avgResponseTime: 0, lastResponseTime: 0,
+			personId: 1,
+			stage: 4,
+			correctStreak: 5,
+			totalCorrect: 5,
+			totalWrong: 0,
+			lastSeen: now - 20_000,
+			nextReview: now - 20_000, // most overdue
+			avgResponseTime: 0,
+			lastResponseTime: 0,
 		}
 		progress.people[2] = {
-			personId: 2, stage: 4, correctStreak: 5,
-			totalCorrect: 5, totalWrong: 0,
-			lastSeen: now - 5_000, nextReview: now - 5_000,
-			avgResponseTime: 0, lastResponseTime: 0,
+			personId: 2,
+			stage: 4,
+			correctStreak: 5,
+			totalCorrect: 5,
+			totalWrong: 0,
+			lastSeen: now - 5_000,
+			nextReview: now - 5_000,
+			avgResponseTime: 0,
+			lastResponseTime: 0,
 		}
 
 		const members = [makeMember(1), makeMember(2)]

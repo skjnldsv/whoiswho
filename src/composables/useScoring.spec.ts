@@ -21,23 +21,23 @@ vi.mock('@nextcloud/browser-storage', () => {
 	}
 })
 
+import type { GameProgress } from './useStorage.ts'
+
 import {
 	CLOSE_ANSWER_XP_DIVISOR,
 	CLOSE_RETRY_INTERVAL,
 	WRONG_RETRY_INTERVAL,
-	XP_PER_LEVEL,
 } from '../constants.ts'
 import {
-	XP_PER_STAGE,
 	applyXp,
 	computeLevelProgress,
 	recordClose,
 	recordCorrect,
 	recordSkip,
 	recordWrong,
+	XP_PER_STAGE,
 } from './useScoring.ts'
 import { defaultProgress } from './useStorage.ts'
-import type { GameProgress } from './useStorage.ts'
 
 describe('applyXp', () => {
 	let progress: GameProgress
@@ -145,10 +145,15 @@ describe('recordCorrect', () => {
 	it('does not advance stage beyond 4', () => {
 		// Set person to stage 4 manually
 		progress.people[1] = {
-			personId: 1, stage: 4, correctStreak: 10,
-			totalCorrect: 10, totalWrong: 0,
-			lastSeen: 0, nextReview: 0,
-			avgResponseTime: 0, lastResponseTime: 0,
+			personId: 1,
+			stage: 4,
+			correctStreak: 10,
+			totalCorrect: 10,
+			totalWrong: 0,
+			lastSeen: 0,
+			nextReview: 0,
+			avgResponseTime: 0,
+			lastResponseTime: 0,
 		}
 		const result = recordCorrect(progress, 1, 'type', 0)
 		expect(result.newStage).toBe(4)
@@ -184,7 +189,7 @@ describe('recordClose', () => {
 
 	it('awards partial XP (1/CLOSE_ANSWER_XP_DIVISOR, rounded up)', () => {
 		const result = recordClose(progress, 1, 'recall')
-		const expected = Math.ceil(XP_PER_STAGE['recall'] / CLOSE_ANSWER_XP_DIVISOR)
+		const expected = Math.ceil(XP_PER_STAGE.recall / CLOSE_ANSWER_XP_DIVISOR)
 		expect(result.xp).toBe(expected)
 	})
 
@@ -224,10 +229,15 @@ describe('recordWrong', () => {
 
 	it('does not let stage drop below 1', () => {
 		progress.people[2] = {
-			personId: 2, stage: 1, correctStreak: 0,
-			totalCorrect: 0, totalWrong: 0,
-			lastSeen: 0, nextReview: 0,
-			avgResponseTime: 0, lastResponseTime: 0,
+			personId: 2,
+			stage: 1,
+			correctStreak: 0,
+			totalCorrect: 0,
+			totalWrong: 0,
+			lastSeen: 0,
+			nextReview: 0,
+			avgResponseTime: 0,
+			lastResponseTime: 0,
 		}
 		recordWrong(progress, 2)
 		expect(progress.people[2].stage).toBe(1)

@@ -21,6 +21,9 @@ vi.mock('@nextcloud/browser-storage', () => {
 	}
 })
 
+import type { TeamMember } from '../types.ts'
+import type { GameProgress } from './useStorage.ts'
+
 import { OPTION_COUNT, PLACEHOLDER_PHOTO } from '../constants.ts'
 import {
 	buildChallenge,
@@ -29,8 +32,6 @@ import {
 	getRandomPhotoOptions,
 } from './useChallengeBuilder.ts'
 import { defaultProgress } from './useStorage.ts'
-import type { GameProgress } from './useStorage.ts'
-import type { TeamMember } from '../types.ts'
 
 /** Create a minimal TeamMember for testing. */
 function makeMember(id: number, name = `Person${id}`): TeamMember {
@@ -182,10 +183,15 @@ describe('buildChallenge', () => {
 
 	it('builds a "recall" challenge for a stage-3 person', () => {
 		progress.people[members[0].id] = {
-			personId: members[0].id, stage: 3, correctStreak: 3,
-			totalCorrect: 3, totalWrong: 0,
-			lastSeen: 0, nextReview: 0,
-			avgResponseTime: 0, lastResponseTime: 0,
+			personId: members[0].id,
+			stage: 3,
+			correctStreak: 3,
+			totalCorrect: 3,
+			totalWrong: 0,
+			lastSeen: 0,
+			nextReview: 0,
+			avgResponseTime: 0,
+			lastResponseTime: 0,
 		}
 		// Force recall (not pick-face) by using fewer than 4 members for recognize
 		const twoMembers = members.slice(0, 3)
@@ -196,10 +202,15 @@ describe('buildChallenge', () => {
 
 	it('builds a "type" challenge for a stage-4 person', () => {
 		progress.people[members[0].id] = {
-			personId: members[0].id, stage: 4, correctStreak: 5,
-			totalCorrect: 5, totalWrong: 0,
-			lastSeen: 0, nextReview: 0,
-			avgResponseTime: 0, lastResponseTime: 0,
+			personId: members[0].id,
+			stage: 4,
+			correctStreak: 5,
+			totalCorrect: 5,
+			totalWrong: 0,
+			lastSeen: 0,
+			nextReview: 0,
+			avgResponseTime: 0,
+			lastResponseTime: 0,
 		}
 		const challenge = buildChallenge(members[0], progress, members)
 		expect(challenge.type).toBe('type')
@@ -207,10 +218,15 @@ describe('buildChallenge', () => {
 
 	it('includes options for a "recognize" challenge', () => {
 		progress.people[members[0].id] = {
-			personId: members[0].id, stage: 2, correctStreak: 2,
-			totalCorrect: 2, totalWrong: 0,
-			lastSeen: 0, nextReview: 0,
-			avgResponseTime: 0, lastResponseTime: 0,
+			personId: members[0].id,
+			stage: 2,
+			correctStreak: 2,
+			totalCorrect: 2,
+			totalWrong: 0,
+			lastSeen: 0,
+			nextReview: 0,
+			avgResponseTime: 0,
+			lastResponseTime: 0,
 		}
 		// Use only 3 members so recognize always stays as 'recognize' (not pick-face)
 		const threeMembers = members.slice(0, 3)
