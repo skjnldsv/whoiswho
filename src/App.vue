@@ -83,7 +83,7 @@
 <script setup lang="ts">
 import type { Achievement } from './composables/useAchievements.ts'
 
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import AchievementsScreen from './components/AchievementsScreen.vue'
 import GameScreen from './components/GameScreen.vue'
 import LeaderboardScreen from './components/LeaderboardScreen.vue'
@@ -92,7 +92,7 @@ import StartScreen from './components/StartScreen.vue'
 import { useAchievements } from './composables/useAchievements.ts'
 import { useGameEngine } from './composables/useGameEngine.ts'
 import { useLeaderboard } from './composables/useLeaderboard.ts'
-import { defaultProgress, resetProgress as doResetProgress } from './composables/useStorage.ts'
+import { defaultProgress, resetProgress as doResetProgress, initProgress } from './composables/useStorage.ts'
 
 const screen = ref<'start' | 'game' | 'results' | 'leaderboard' | 'achievements'>('start')
 const hintText = ref<string | null>(null)
@@ -143,6 +143,12 @@ const {
 	useSecondHint,
 	retryFetch,
 } = useGameEngine()
+
+// Sync progress with the server on startup: merge local and server-side copies
+onMounted(async () => {
+	const merged = await initProgress()
+	progress.value = merged
+})
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 

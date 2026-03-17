@@ -3,13 +3,20 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+import axios from '@nextcloud/axios'
 import { getBuilder } from '@nextcloud/browser-storage'
+import { generateOcsUrl } from '@nextcloud/router'
 import { MAX_LIVES } from '../constants.ts'
 
 const storage = getBuilder('whoiswho').persist().build()
 const STORAGE_KEY = 'progress'
 // Legacy key used before migration to @nextcloud/browser-storage
 const LEGACY_STORAGE_KEY = 'nc-whos-who-progress'
+
+// OCS response envelope
+interface OcsResponse<T> {
+	ocs: { data: T }
+}
 
 export interface PersonProgress {
 	personId: number
@@ -74,7 +81,7 @@ export function defaultProgress(): GameProgress {
 }
 
 /**
- *
+ * Load progress from browser storage (synchronous, used as initial value).
  */
 export function loadProgress(): GameProgress {
 	try {
@@ -97,18 +104,108 @@ export function loadProgress(): GameProgress {
 }
 
 /**
+ * Fetch the authenticated user's progress from the server.
+ * Returns null when the server has no saved progress yet.
+ */
+export async function loadProgressFromServer(): Promise<GameProgress | null> {
+	try {
+		const url = generateOcsUrl('/apps/whoiswho/progress')
+		const response = await axios.get<OcsResponse<{ progress: GameProgress | null }>>(url)
+		const serverProgress = response.data.ocs.data.progress
+		if (serverProgress === null) {
+			return null
+		}
+		return { ...defaultProgress(), ...serverProgress }
+	} catch {
+		// Network error or server unavailable — fall back to local storage
+		return null
+	}
+}
+
+/**
+ * Merge two progress objects, keeping the more advanced state from each.
+ * The merge prefers whichever source has accumulated more XP.
+ *
+ * @param local Progress loaded from browser storage
+ * @param server Progress loaded from the server
+ */
+export function mergeProgress(local: GameProgress, server: GameProgress): GameProgress {
+	// Use the source with the higher XP total as the base
+	const base = server.xp >= local.xp ? server : local
+	const other = server.xp >= local.xp ? local : server
+
+	// Merge per-person progress: take the higher stage for each person
+	const mergedPeople: Record<number, typeof base.people[number]> = { ...other.people }
+	for (const [idStr, person] of Object.entries(base.people)) {
+		const id = Number(idStr)
+		const existing = mergedPeople[id]
+		if (!existing || person.stage > existing.stage) {
+			mergedPeople[id] = person
+		}
+	}
+
+	return { ...base, people: mergedPeople }
+}
+
+/**
+ * Initialise game progress: load from server and merge with local storage.
+ * This should be called once on app startup.
+ * Returns the merged progress and updates browser storage with the result.
+ */
+export async function initProgress(): Promise<GameProgress> {
+	const local = loadProgress()
+	const server = await loadProgressFromServer()
+	if (server === null) {
+		// No server record yet — push local progress to server so it is persisted
+		saveProgressToServer(local)
+		return local
+	}
+	const merged = mergeProgress(local, server)
+	// Persist the merged result locally and to the server
+	storage.setItem(STORAGE_KEY, JSON.stringify(merged))
+	saveProgressToServer(merged)
+	return merged
+}
+
+/**
+ * Save progress to browser storage (synchronous) and asynchronously to the server.
  *
  * @param progress The game progress to save
  */
 export function saveProgress(progress: GameProgress): void {
 	storage.setItem(STORAGE_KEY, JSON.stringify(progress))
+	saveProgressToServer(progress)
 }
 
 /**
+ * Push the current progress to the server (fire-and-forget).
+ * Errors are swallowed — the local copy remains authoritative if the call fails.
  *
+ * @param progress The game progress to persist on the server
+ */
+export function saveProgressToServer(progress: GameProgress): void {
+	const url = generateOcsUrl('/apps/whoiswho/progress')
+	axios.put(url, { progress }).catch(() => {
+		// Network error — local storage copy is still intact
+	})
+}
+
+/**
+ * Remove progress from browser storage and from the server.
  */
 export function resetProgress(): void {
 	storage.removeItem(STORAGE_KEY)
+	resetProgressOnServer()
+}
+
+/**
+ * Delete the user's server-side progress record (fire-and-forget).
+ */
+export function resetProgressOnServer(): void {
+	const url = generateOcsUrl('/apps/whoiswho/progress')
+	axios.delete(url).catch(() => {
+		// Network error — ignore
+	})
 }
 
 /**

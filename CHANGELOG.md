@@ -5,6 +5,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+## [1.2.0] - 2026-03-17
+
+### Added
+
+- **Server-side progress persistence**: game progress (XP, level, learned people) is now stored in the Nextcloud database, enabling cross-device play and preventing data loss when browser storage is cleared
+  - `GET /apps/whoiswho/progress` — load the authenticated user's saved progress
+  - `PUT /apps/whoiswho/progress` — persist progress after each game action
+  - `DELETE /apps/whoiswho/progress` — erase server-side progress (triggered by the in-app reset button)
+- **Progress merge on startup**: when the app loads it merges local browser storage with the server copy, taking the most advanced state for each person so no progress is ever lost
+
+
 ## [1.1.1] - 2026-03-13
 
 ### Added

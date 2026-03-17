@@ -24,7 +24,7 @@ vi.mock('@nextcloud/browser-storage', () => {
 import type { GameProgress } from './useStorage.ts'
 
 import { MAX_LIVES } from '../constants.ts'
-import { defaultProgress, getPersonProgress } from './useStorage.ts'
+import { defaultProgress, getPersonProgress, mergeProgress } from './useStorage.ts'
 
 describe('defaultProgress', () => {
 	it('returns a progress object with zero scores', () => {
@@ -108,5 +108,68 @@ describe('getPersonProgress', () => {
 		getPersonProgress(progress, 99)
 		expect(progress.people[99]).toBeDefined()
 		expect(progress.people[99].personId).toBe(99)
+	})
+})
+
+describe('mergeProgress', () => {
+	function makeProgress(overrides: Partial<GameProgress>): GameProgress {
+		return { ...defaultProgress(), ...overrides }
+	}
+
+	it('prefers the server copy when it has more XP', () => {
+		const local = makeProgress({ xp: 50, level: 1 })
+		const server = makeProgress({ xp: 200, level: 3 })
+		const merged = mergeProgress(local, server)
+		expect(merged.xp).toBe(200)
+		expect(merged.level).toBe(3)
+	})
+
+	it('prefers the local copy when it has more XP', () => {
+		const local = makeProgress({ xp: 300, level: 4 })
+		const server = makeProgress({ xp: 100, level: 2 })
+		const merged = mergeProgress(local, server)
+		expect(merged.xp).toBe(300)
+		expect(merged.level).toBe(4)
+	})
+
+	it('merges people by taking the highest stage', () => {
+		const local = makeProgress({
+			xp: 0,
+			people: {
+				1: { personId: 1, stage: 3, correctStreak: 0, totalCorrect: 5, totalWrong: 0, lastSeen: 0, nextReview: 0, avgResponseTime: 0, lastResponseTime: 0 },
+			},
+		})
+		const server = makeProgress({
+			xp: 100,
+			people: {
+				1: { personId: 1, stage: 1, correctStreak: 0, totalCorrect: 1, totalWrong: 0, lastSeen: 0, nextReview: 0, avgResponseTime: 0, lastResponseTime: 0 },
+				2: { personId: 2, stage: 2, correctStreak: 0, totalCorrect: 2, totalWrong: 0, lastSeen: 0, nextReview: 0, avgResponseTime: 0, lastResponseTime: 0 },
+			},
+		})
+		const merged = mergeProgress(local, server)
+		// server wins on XP; person 1 should keep stage 3 (from local which is higher)
+		expect(merged.people[1].stage).toBe(3)
+		// person 2 exists only on server — should be present
+		expect(merged.people[2].stage).toBe(2)
+	})
+
+	it('includes people present only in local when server has more XP', () => {
+		const local = makeProgress({
+			xp: 0,
+			people: {
+				5: { personId: 5, stage: 4, correctStreak: 0, totalCorrect: 10, totalWrong: 0, lastSeen: 0, nextReview: 0, avgResponseTime: 0, lastResponseTime: 0 },
+			},
+		})
+		const server = makeProgress({ xp: 500, people: {} })
+		const merged = mergeProgress(local, server)
+		expect(merged.people[5]).toBeDefined()
+		expect(merged.people[5].stage).toBe(4)
+	})
+
+	it('returns a result with equal XP when both inputs match', () => {
+		const a = makeProgress({ xp: 50 })
+		const b = makeProgress({ xp: 50 })
+		const merged = mergeProgress(a, b)
+		expect(merged.xp).toBe(50)
 	})
 })
