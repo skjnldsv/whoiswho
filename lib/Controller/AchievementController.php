@@ -70,6 +70,17 @@ class AchievementController extends OCSController {
 	}
 
 	#[NoAdminRequired]
+	#[ApiRoute(verb: 'GET', url: '/achievements/stats')]
+	public function getAchievementStats(): DataResponse {
+		$user = $this->userSession->getUser();
+		if ($user === null) {
+			return new DataResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
+		}
+		$counts = $this->mapper->getUnlockCounts();
+		return new DataResponse(['stats' => $counts]);
+	}
+
+	#[NoAdminRequired]
 	#[ApiRoute(verb: 'GET', url: '/achievements')]
 	public function getAchievements(): DataResponse {
 		$user = $this->userSession->getUser();

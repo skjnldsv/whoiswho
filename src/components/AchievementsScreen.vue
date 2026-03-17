@@ -40,6 +40,9 @@
 							<div class="achievement-desc">
 								{{ achievement.description }}
 							</div>
+							<div v-if="unlockCounts[achievement.id] !== undefined" class="achievement-stats">
+								{{ unlockCounts[achievement.id] }} {{ unlockCounts[achievement.id] === 1 ? 'user' : 'users' }} unlocked this
+							</div>
 						</div>
 						<div v-if="unlockedIds.has(achievement.id)" class="achievement-badge">
 							✓
@@ -60,6 +63,7 @@ import { ACHIEVEMENTS } from '../composables/useAchievements.ts'
 
 const props = defineProps<{
 	unlockedIds: Set<string>
+	unlockCounts: Record<string, number>
 	loading: boolean
 }>()
 
@@ -209,6 +213,13 @@ const unlockedCount = computed(() => props.unlockedIds.size)
 	font-size: 0.78rem;
 	color: var(--color-text-maxcontrast);
 	margin-top: 2px;
+}
+
+.achievement-stats {
+	font-size: 0.72rem;
+	color: var(--color-text-maxcontrast);
+	margin-top: 4px;
+	opacity: 0.8;
 }
 
 .achievement-badge {

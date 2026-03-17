@@ -41,6 +41,40 @@ class AchievementControllerTest extends TestCase {
 		);
 	}
 
+	// ── getAchievementStats ──────────────────────────────────────────────────
+
+	public function testGetAchievementStatsReturnsUnauthorizedWhenNotLoggedIn(): void {
+		$this->userSession->method('getUser')->willReturn(null);
+
+		$response = $this->controller->getAchievementStats();
+
+		$this->assertEquals(Http::STATUS_UNAUTHORIZED, $response->getStatus());
+	}
+
+	public function testGetAchievementStatsReturnsCountsForAuthenticatedUser(): void {
+		$user = $this->createMock(IUser::class);
+		$user->method('getUID')->willReturn('alice');
+		$this->userSession->method('getUser')->willReturn($user);
+		$this->mapper->method('getUnlockCounts')->willReturn(['first-contact' => 5, 'hot-streak' => 2]);
+
+		$response = $this->controller->getAchievementStats();
+
+		$this->assertEquals(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame(['first-contact' => 5, 'hot-streak' => 2], $response->getData()['stats']);
+	}
+
+	public function testGetAchievementStatsReturnsEmptyArrayWhenNoUnlocks(): void {
+		$user = $this->createMock(IUser::class);
+		$user->method('getUID')->willReturn('alice');
+		$this->userSession->method('getUser')->willReturn($user);
+		$this->mapper->method('getUnlockCounts')->willReturn([]);
+
+		$response = $this->controller->getAchievementStats();
+
+		$this->assertEquals(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame([], $response->getData()['stats']);
+	}
+
 	// ── getAchievements ──────────────────────────────────────────────────────
 
 	public function testGetAchievementsReturnsUnauthorizedWhenNotLoggedIn(): void {
